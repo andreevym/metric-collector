@@ -23,10 +23,6 @@ func (s Server) update(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
-	if r.Header.Get("Content-Type") != "text/plain" {
-		w.WriteHeader(http.StatusUnsupportedMediaType)
-		return
-	}
 
 	values := strings.Split(r.URL.Path, "/")
 	if len(values) != lenArgsUpdateMethod {
