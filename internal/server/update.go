@@ -37,6 +37,12 @@ func (s Server) update(w http.ResponseWriter, r *http.Request) {
 	metricName := values[idxMetricName]
 	metricValue := values[idxMetricValue]
 	metricType := values[idxMetricType]
+	if metricName == "" ||
+		metricValue == "" ||
+		metricType == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	if metricType == model.MetricTypeCounter {
 		err := counter.StoreCounter(s.counterMemStorage, metricName, metricValue)
