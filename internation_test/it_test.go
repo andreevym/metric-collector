@@ -1,6 +1,7 @@
 package internation_test
 
 import (
+	"io"
 	"net/http"
 	"testing"
 
@@ -15,8 +16,15 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
-		defer response.Body.Close()
+
 		require.NoError(t, err)
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				require.NoError(t, err)
+			}
+		}(response.Body)
+
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusOK, response.StatusCode)
 	})
@@ -26,8 +34,15 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
-		defer response.Body.Close()
+
 		require.NoError(t, err)
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				require.NoError(t, err)
+			}
+		}(response.Body)
+
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusOK, response.StatusCode)
 	})
@@ -37,8 +52,15 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
-		defer response.Body.Close()
+
 		require.NoError(t, err)
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				require.NoError(t, err)
+			}
+		}(response.Body)
+
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusBadRequest, response.StatusCode)
 	})
@@ -48,8 +70,15 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
-		defer response.Body.Close()
+
 		require.NoError(t, err)
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				require.NoError(t, err)
+			}
+		}(response.Body)
+
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusNotFound, response.StatusCode)
 	})
@@ -59,8 +88,15 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
-		defer response.Body.Close()
+
 		require.NoError(t, err)
+		defer func(Body io.ReadCloser) {
+			err := Body.Close()
+			if err != nil {
+				require.NoError(t, err)
+			}
+		}(response.Body)
+
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusNotFound, response.StatusCode)
 	})
