@@ -9,12 +9,24 @@ import (
 
 func TestIntegration(t *testing.T) {
 	t.Skip("todo: need to implement integration test")
-	t.Run("[good] valid url", func(t *testing.T) {
+	t.Run("[good] counter - valid url", func(t *testing.T) {
 		response, err := http.Post(
 			"http://localhost:8080/update/counter/someMetric/527",
 			"text/plain",
 			nil,
 		)
+		defer response.Body.Close()
+		require.NoError(t, err)
+		require.NotNil(t, response)
+		require.Equal(t, http.StatusOK, response.StatusCode)
+	})
+	t.Run("[good] gauge - valid url", func(t *testing.T) {
+		response, err := http.Post(
+			"http://localhost:8080/update/gauge/someMetric/527",
+			"text/plain",
+			nil,
+		)
+		defer response.Body.Close()
 		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusOK, response.StatusCode)
@@ -25,6 +37,7 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
+		defer response.Body.Close()
 		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusBadRequest, response.StatusCode)
@@ -35,6 +48,7 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
+		defer response.Body.Close()
 		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusNotFound, response.StatusCode)
@@ -45,6 +59,7 @@ func TestIntegration(t *testing.T) {
 			"text/plain",
 			nil,
 		)
+		defer response.Body.Close()
 		require.NoError(t, err)
 		require.NotNil(t, response)
 		require.Equal(t, http.StatusNotFound, response.StatusCode)
