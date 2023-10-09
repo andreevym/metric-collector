@@ -51,6 +51,7 @@ func sendMetricToServer(tickerReport *time.Ticker) {
 		if err != nil {
 			panic(err)
 		}
+		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			panic("resp.StatusCode != http.StatusOK")
 		}
