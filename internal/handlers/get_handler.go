@@ -3,7 +3,6 @@ package handlers
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/andreevym/metric-collector/internal/counter"
 	"github.com/andreevym/metric-collector/internal/gauge"
@@ -24,14 +23,18 @@ func (s Server) GetMetricByTypeAndNameHandler() http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			io.WriteString(w, v)
+			if v != "" {
+				io.WriteString(w, v)
+			}
 		} else if metricType == model.MetricTypeGauge {
 			v, err := gauge.Get(s.GaugeStorage(), metricName)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			io.WriteString(w, strings.Join(v, ", "))
+			if len(v) > 0 {
+				io.WriteString(w, v[len(v)-1])
+			}
 		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			return
