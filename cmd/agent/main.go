@@ -16,9 +16,6 @@ var (
 )
 
 const (
-	pollInterval   = 2 * time.Second
-	reportInterval = 10 * time.Second
-
 	// Формат данных — http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>.
 	// Адрес сервера — http://localhost:8080.
 	metricServerURL = "http://localhost:8080"
@@ -27,9 +24,13 @@ const (
 )
 
 func main() {
+	parseFlags()
+
 	// Обновлять метрики из пакета runtime с заданной частотой: pollInterval — 2 секунды.
+	pollInterval := flagPollIntervalSec * time.Second
 	tickerMetric := time.NewTicker(pollInterval)
 	// Отправлять метрики на сервер с заданной частотой: reportInterval — 10 секунд.
+	reportInterval := flagReportIntervalSec * time.Second
 	tickerReport := time.NewTicker(reportInterval)
 
 	go collectRuntimeMetric(tickerMetric)

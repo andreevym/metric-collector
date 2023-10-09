@@ -9,7 +9,7 @@ import (
 	"github.com/go-chi/chi"
 )
 
-func StartServer() {
+func StartServer(addr string) {
 	counterMemStorage := mem.NewStorage()
 	gaugeMemStorage := mem.NewStorage()
 	s := handlers.NewServer(counterMemStorage, gaugeMemStorage)
@@ -23,5 +23,5 @@ func StartServer() {
 		"/value/{metricType}/{metricName}",
 		s.GetMetricByTypeAndNameHandler(),
 	)
-	log.Fatal(http.ListenAndServe(":8080", r))
+	log.Fatal(http.ListenAndServe(addr, r))
 }
