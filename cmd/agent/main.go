@@ -27,13 +27,13 @@ func main() {
 	parseFlags()
 
 	var config EnvConfig
-	err := env.Parse(config)
+	err := env.Parse(&config)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	if config.Address != "" {
-		flagRunAddr = config.Address
+		flagAddr = config.Address
 	}
 
 	// Обновлять метрики из пакета runtime с заданной частотой: pollInterval — 2 секунды.
@@ -49,7 +49,7 @@ func main() {
 	tickerReport := time.NewTicker(flagReportInterval * time.Second)
 
 	go collectRuntimeMetric(tickerMetric)
-	go sendMetricToServer(tickerReport, flagRunAddr)
+	go sendMetricToServer(tickerReport, flagAddr)
 
 	// время жизни клиента для сбора метрик
 	time.Sleep(time.Minute)
