@@ -5,28 +5,23 @@ import (
 	"net/http"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
-	"github.com/andreevym/metric-collector/internal/repository"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
+	"github.com/go-chi/chi"
 )
-
-type Server struct {
-	counterMemStorage repository.Storage
-	gaugeMemStorage   repository.Storage
-}
-
-func NewServer(counterMemStorage mem.Storage, gaugeMemStorage repository.Storage) Server {
-	return Server{
-		counterMemStorage: counterMemStorage,
-		gaugeMemStorage:   gaugeMemStorage,
-	}
-}
 
 func StartServer() {
 	counterMemStorage := mem.NewStorage()
 	gaugeMemStorage := mem.NewStorage()
-	s := NewServer(counterMemStorage, gaugeMemStorage)
+	s := handlers.NewServer(counterMemStorage, gaugeMemStorage)
 
-	mux := http.NewServeMux()
-	mux.Handle("/update/", handlers.UpdateHandler(s.counterMemStorage, s.gaugeMemStorage))
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	r := chi.NewRouter()
+	r.Handle(
+		"/update/{metricType}/{metricName}/{metricValue}",
+		s.UpdateMetricHandler(),
+	)
+	r.Get(
+		"/value/{metricType}/{metricName}",
+		s.GetMetricByTypeAndNameHandler(),
+	)
+	log.Fatal(http.ListenAndServe(":8080", r))
 }

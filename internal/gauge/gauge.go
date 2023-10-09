@@ -15,3 +15,12 @@ func Validate(metricValue string) error {
 	_, err := strconv.ParseFloat(metricValue, 64)
 	return err
 }
+
+func Get(s repository.Storage, metricName string) ([]string, error) {
+	v, err := s.Read(metricName)
+	if err != nil {
+		return nil, err
+	}
+
+	return v, nil
+}

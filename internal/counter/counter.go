@@ -1,6 +1,7 @@
 package counter
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/repository"
@@ -29,4 +30,17 @@ func Store(s repository.Storage, metricName string, metricValue string) error {
 func Validate(metricValue string) error {
 	_, err := strconv.ParseInt(metricValue, 10, 64)
 	return err
+}
+
+func Get(s repository.Storage, metricName string) (string, error) {
+	v, err := s.Read(metricName)
+	if err != nil {
+		return "", err
+	}
+
+	if len(v) == 0 {
+		return "", fmt.Errorf("can't find metric by name %s", metricName)
+	}
+
+	return v[0], nil
 }

@@ -52,7 +52,8 @@ func TestUpdateHandler(t *testing.T) {
 
 			request := httptest.NewRequest(test.httpMethod, test.request, nil)
 			w := httptest.NewRecorder()
-			h := handlers.UpdateHandler(counterMemStorage, gaugeMemStorage)
+			server := handlers.NewServer(counterMemStorage, gaugeMemStorage)
+			h := server.UpdateMetricHandler()
 			h(w, request)
 
 			result := w.Result()
