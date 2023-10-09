@@ -98,6 +98,36 @@ func TestGetHandler(t *testing.T) {
 			request:    "/value/gauge/test",
 			httpMethod: http.MethodGet,
 		},
+		{
+			name: "unknown 'metricName' get gauge",
+			want: want{
+				contentType: "",
+				statusCode:  http.StatusNotFound,
+				resp:        "",
+			},
+			request:    "/value/gauge/test",
+			httpMethod: http.MethodGet,
+		},
+		{
+			name: "unknown 'metricName' get counter",
+			want: want{
+				contentType: "",
+				statusCode:  http.StatusNotFound,
+				resp:        "",
+			},
+			request:    "/value/counter/test",
+			httpMethod: http.MethodGet,
+		},
+		{
+			name: "unknown 'metricType'",
+			want: want{
+				contentType: "",
+				statusCode:  http.StatusNotFound,
+				resp:        "",
+			},
+			request:    "/value/TestGauge/test",
+			httpMethod: http.MethodGet,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

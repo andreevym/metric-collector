@@ -17,29 +17,38 @@ func (s Server) GetMetricByTypeAndNameHandler() http.HandlerFunc {
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 
-		if metricType == model.MetricTypeCounter {
+		switch metricType {
+		case model.MetricTypeCounter:
 			v, err := counter.Get(s.CounterStorage(), metricName)
 			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
 			if v != "" {
 				io.WriteString(w, v)
-			}
-		} else if metricType == model.MetricTypeGauge {
-			v, err := gauge.Get(s.GaugeStorage(), metricName)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
+				w.WriteHeader(http.StatusOK)
+				return
+			} else {
+				w.WriteHeader(http.StatusNotFound)
 				return
 			}
-			if len(v) > 0 {
-				io.WriteString(w, v[len(v)-1])
+		case model.MetricTypeGauge:
+			v, err := gauge.Get(s.GaugeStorage(), metricName)
+			if err != nil {
+				w.WriteHeader(http.StatusNotFound)
+				return
 			}
-		} else {
-			w.WriteHeader(http.StatusBadRequest)
+			if len(v) != 0 {
+				io.WriteString(w, v[len(v)-1])
+				w.WriteHeader(http.StatusOK)
+				return
+			} else {
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+		default:
+			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-
-		w.WriteHeader(http.StatusOK)
 	}
 }
