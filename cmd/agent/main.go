@@ -63,13 +63,18 @@ func sendMetricToServer(tickerReport *time.Ticker, metricServerURL string) {
 		fmt.Printf("- report lastMemStats %v\n", lastMemStats)
 		fmt.Printf("- report %s\n", a.String())
 		resp, err := http.Post(metricServerURL, ContentType, nil)
-		defer resp.Body.Close()
 		if err != nil {
 			fmt.Printf("failed to send metric: invalid send http post: %v", err)
 			break
 		}
+		err = resp.Body.Close()
+		if err != nil {
+			fmt.Printf("failed to handle response from server: close resp body: %v", err)
+			break
+		}
 		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("failed to send metri:, invalid response status. found status %s", resp.Status)
+			fmt.Printf("invalid response status. found status code %d but expected %d",
+				resp.StatusCode, http.StatusOK)
 			break
 		}
 	}
