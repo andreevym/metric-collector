@@ -27,10 +27,10 @@ func main() {
 	parseFlags()
 
 	// Обновлять метрики из пакета runtime с заданной частотой: pollInterval — 2 секунды.
-	pollInterval := flagPollIntervalSec * time.Second
+	pollInterval := flagPollInterval * time.Second
 	tickerMetric := time.NewTicker(pollInterval)
 	// Отправлять метрики на сервер с заданной частотой: reportInterval — 10 секунд.
-	reportInterval := flagReportIntervalSec * time.Second
+	reportInterval := flagReportInterval * time.Second
 	tickerReport := time.NewTicker(reportInterval)
 
 	go collectRuntimeMetric(tickerMetric)
