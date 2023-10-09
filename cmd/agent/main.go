@@ -48,10 +48,10 @@ func sendMetricToServer(tickerReport *time.Ticker) {
 		fmt.Printf("- report lastMemStats %v\n", lastMemStats)
 		fmt.Printf("- report %s\n", a.String())
 		resp, err := http.Post(metricServerURL, ContentType, nil)
+		defer resp.Body.Close()
 		if err != nil {
 			panic(err)
 		}
-		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
 			panic("resp.StatusCode != http.StatusOK")
 		}
