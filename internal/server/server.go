@@ -4,22 +4,17 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/repository"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
 
-type Storage interface {
-	Create(key string, val string) error
-	Read(key string) ([]string, error)
-	Update(key string, val []string) error
-	Delete(key string) error
-}
-
 type Server struct {
-	counterMemStorage Storage
-	gaugeMemStorage   Storage
+	counterMemStorage repository.Storage
+	gaugeMemStorage   repository.Storage
 }
 
-func NewServer(counterMemStorage mem.Storage, gaugeMemStorage Storage) Server {
+func NewServer(counterMemStorage mem.Storage, gaugeMemStorage repository.Storage) Server {
 	return Server{
 		counterMemStorage: counterMemStorage,
 		gaugeMemStorage:   gaugeMemStorage,
@@ -32,6 +27,6 @@ func StartServer() {
 	s := NewServer(counterMemStorage, gaugeMemStorage)
 
 	mux := http.NewServeMux()
-	mux.Handle("/update/", http.HandlerFunc(s.update))
+	mux.Handle("/update/", handlers.UpdateHandler(s.counterMemStorage, s.gaugeMemStorage))
 	log.Fatal(http.ListenAndServe(":8080", mux))
 }

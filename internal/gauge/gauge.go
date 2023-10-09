@@ -2,23 +2,16 @@ package gauge
 
 import (
 	"strconv"
+
+	"github.com/andreevym/metric-collector/internal/repository"
 )
 
-type Storage interface {
-	Create(key string, val string) error
+func Store(s repository.Storage, metricName string, metricValue string) error {
+	err := s.Create(metricName, metricValue)
+	return err
 }
 
-func StoreGauge(s Storage, metricName string, metricValue string) error {
-	// validate metric value argument for 'gauge' metric type
+func Validate(metricValue string) error {
 	_, err := strconv.ParseFloat(metricValue, 64)
-	if err != nil {
-		return err
-	}
-
-	err = s.Create(metricName, metricValue)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

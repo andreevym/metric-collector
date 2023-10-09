@@ -2,20 +2,11 @@ package counter
 
 import (
 	"strconv"
+
+	"github.com/andreevym/metric-collector/internal/repository"
 )
 
-type Storage interface {
-	Create(key string, val string) error
-	Read(key string) ([]string, error)
-	Update(key string, val []string) error
-}
-
-func StoreCounter(s Storage, metricName string, metricValue string) error {
-	// validate metric value argument for 'counter' metric type
-	_, err := strconv.ParseInt(metricValue, 10, 64)
-	if err != nil {
-		return err
-	}
+func Store(s repository.Storage, metricName string, metricValue string) error {
 	metricValues, err := s.Read(metricName)
 	if err != nil {
 		return err
@@ -33,4 +24,9 @@ func StoreCounter(s Storage, metricName string, metricValue string) error {
 	}
 
 	return nil
+}
+
+func Validate(metricValue string) error {
+	_, err := strconv.ParseInt(metricValue, 10, 64)
+	return err
 }
