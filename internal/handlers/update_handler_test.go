@@ -53,24 +53,27 @@ func TestUpdateHandler(t *testing.T) {
 			ts := httptest.NewServer(handlers.Router(server))
 			defer ts.Close()
 
-			resp, get := testRequest(t, ts, test.httpMethod, test.request)
-			assert.Equal(t, test.want.statusCode, resp.StatusCode)
-			assert.Equal(t, test.want.contentType, resp.Header.Get("Content-Type"))
+			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request)
+			assert.Equal(t, test.want.statusCode, statusCode)
+			assert.Equal(t, test.want.contentType, contentType)
 			assert.Equal(t, test.want.resp, get)
 		})
 	}
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (*http.Response, string) {
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string, string) {
 	req, err := http.NewRequest(method, ts.URL+path, nil)
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	require.NoError(t, err)
 
-	return resp, string(respBody)
+	err = resp.Body.Close()
+	require.NoError(t, err)
+
+	contentType := resp.Header.Get("Content-Type")
+	return resp.StatusCode, contentType, string(respBody)
 }
