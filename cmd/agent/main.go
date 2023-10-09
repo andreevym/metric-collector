@@ -2,10 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
 	"time"
+
+	"github.com/caarlos0/env"
 )
 
 var (
@@ -16,9 +19,6 @@ var (
 )
 
 const (
-	// Формат данных — http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>.
-	// Адрес сервера — http://localhost:8080.
-	metricServerURL = "http://localhost:8080"
 	// ContentType Заголовок — Content-Type: text/plain.
 	ContentType = "text/plain"
 )
@@ -26,21 +26,36 @@ const (
 func main() {
 	parseFlags()
 
+	var config EnvConfig
+	err := env.Parse(config)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if config.Address != "" {
+		flagRunAddr = config.Address
+	}
+
 	// Обновлять метрики из пакета runtime с заданной частотой: pollInterval — 2 секунды.
-	pollInterval := flagPollInterval * time.Second
-	tickerMetric := time.NewTicker(pollInterval)
+	if config.PollInterval != 0 {
+		flagPollInterval = config.PollInterval
+	}
+	tickerMetric := time.NewTicker(flagPollInterval * time.Second)
+
 	// Отправлять метрики на сервер с заданной частотой: reportInterval — 10 секунд.
-	reportInterval := flagReportInterval * time.Second
-	tickerReport := time.NewTicker(reportInterval)
+	if config.ReportInterval != 0 {
+		flagReportInterval = config.ReportInterval
+	}
+	tickerReport := time.NewTicker(flagReportInterval * time.Second)
 
 	go collectRuntimeMetric(tickerMetric)
-	go sendMetricToServer(tickerReport)
+	go sendMetricToServer(tickerReport, flagRunAddr)
 
 	// время жизни клиента для сбора метрик
 	time.Sleep(time.Minute)
 }
 
-func sendMetricToServer(tickerReport *time.Ticker) {
+func sendMetricToServer(tickerReport *time.Ticker, metricServerURL string) {
 	for a := range tickerReport.C {
 		randomValue := rand.Int()
 		fmt.Printf("- report randomValue: %v", randomValue)
