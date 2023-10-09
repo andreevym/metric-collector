@@ -20,24 +20,12 @@ func (s Server) UpdateMetricHandler() http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "text/plain")
 
-		//values := strings.Split(r.URL.Path, "/")
-		//if len(values) != lenArgsUpdateMethod {
-		//	w.WriteHeader(http.StatusNotFound)
-		//	return
-		//}
-
 		metricType := chi.URLParam(r, "metricType")
 		metricName := chi.URLParam(r, "metricName")
 		metricValue := chi.URLParam(r, "metricValue")
 
-		if metricName == "" ||
-			metricValue == "" ||
-			metricType == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		if metricType == model.MetricTypeCounter {
+		switch metricType {
+		case model.MetricTypeCounter:
 			err := counter.Validate(metricValue)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -48,7 +36,7 @@ func (s Server) UpdateMetricHandler() http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-		} else if metricType == model.MetricTypeGauge {
+		case model.MetricTypeGauge:
 			err := gauge.Validate(metricValue)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -59,7 +47,7 @@ func (s Server) UpdateMetricHandler() http.HandlerFunc {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-		} else {
+		default:
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
