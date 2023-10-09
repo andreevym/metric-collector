@@ -65,10 +65,12 @@ func sendMetricToServer(tickerReport *time.Ticker, metricServerURL string) {
 		resp, err := http.Post(metricServerURL, ContentType, nil)
 		defer resp.Body.Close()
 		if err != nil {
-			panic(err)
+			fmt.Printf("failed to send metric: invalid send http post: %v", err)
+			break
 		}
 		if resp.StatusCode != http.StatusOK {
-			panic("resp.StatusCode != http.StatusOK")
+			fmt.Printf("failed to send metri:, invalid response status. found status %s", resp.Status)
+			break
 		}
 	}
 }
