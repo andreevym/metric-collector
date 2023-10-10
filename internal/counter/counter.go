@@ -20,7 +20,16 @@ func Store(s repository.Storage, metricName string, metricValue string) error {
 			return err
 		}
 	} else {
-		err = s.Update(metricName, []string{metricValue})
+		existsMetricVal, err := strconv.ParseInt(metricValues[0], 10, 64)
+		if err != nil {
+			return err
+		}
+		v, err := strconv.ParseInt(metricValue, 10, 64)
+		if err != nil {
+			return err
+		}
+		newVal := fmt.Sprintf("%d", existsMetricVal+v)
+		err = s.Update(metricName, []string{newVal})
 		if err != nil {
 			return err
 		}
