@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"math/rand"
@@ -24,7 +25,8 @@ const (
 )
 
 func main() {
-	parseFlags()
+	// парсим переданные серверу агенту в зарегистрированные переменные
+	flag.Parse()
 
 	var config EnvConfig
 	err := env.Parse(&config)

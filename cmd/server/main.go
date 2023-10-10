@@ -1,9 +1,14 @@
 package main
 
-import "github.com/andreevym/metric-collector/internal/server"
+import (
+	"flag"
+
+	"github.com/andreevym/metric-collector/internal/server"
+)
 
 func main() {
-	parseFlags()
+	// парсим переданные серверу аргументы в зарегистрированные переменные
+	flag.Parse()
 
 	server.StartServer(flagRunAddr)
 }

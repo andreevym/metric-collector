@@ -1,15 +1,17 @@
 package counter
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/repository"
+	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
 
 func Store(s repository.Storage, metricName string, metricValue string) error {
 	metricValues, err := s.Read(metricName)
-	if err != nil {
+	if err != nil && !errors.Is(err, mem.ErrValueNotFound) {
 		return err
 	}
 	if len(metricValues) == 0 {

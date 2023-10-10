@@ -29,7 +29,11 @@ func (s *Storage) Create(key string, val string) error {
 }
 
 func (s *Storage) Read(key string) ([]string, error) {
-	return s.m[key], nil
+	v, ok := s.m[key]
+	if !ok {
+		return nil, fmt.Errorf("%w: not found value by key %s", ErrValueNotFound, key)
+	}
+	return v, nil
 }
 
 func (s *Storage) Update(key string, val []string) error {
