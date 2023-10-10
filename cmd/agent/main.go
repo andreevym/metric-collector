@@ -42,13 +42,13 @@ func main() {
 	if config.PollInterval != 0 {
 		flagPollInterval = config.PollInterval
 	}
-	tickerMetric := time.NewTicker(flagPollInterval * time.Second)
+	tickerMetric := time.NewTicker(time.Duration(flagPollInterval) * time.Second)
 
 	// Отправлять метрики на сервер с заданной частотой: reportInterval — 10 секунд.
 	if config.ReportInterval != 0 {
 		flagReportInterval = config.ReportInterval
 	}
-	tickerReport := time.NewTicker(flagReportInterval * time.Second)
+	tickerReport := time.NewTicker(time.Duration(flagReportInterval) * time.Second)
 
 	go collectRuntimeMetric(tickerMetric)
 	go sendMetricToServer(tickerReport, flagAddr)
@@ -64,7 +64,8 @@ func sendMetricToServer(tickerReport *time.Ticker, metricServerURL string) {
 		fmt.Printf("- report pollCount %v\n", pollCount)
 		fmt.Printf("- report lastMemStats %v\n", lastMemStats)
 		fmt.Printf("- report %s\n", a.String())
-		resp, err := http.Post(metricServerURL, ContentType, nil)
+		url := fmt.Sprintf("http://%s", metricServerURL)
+		resp, err := http.Post(url, ContentType, nil)
 		if err != nil {
 			fmt.Printf("failed to send metric: invalid send http post: %v", err)
 			break
