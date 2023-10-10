@@ -14,7 +14,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&flagAddr, "a", "http://localhost:8080", "address and port to run server")
+	flag.StringVar(&flagAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&flagReportInterval, "r", 10, "report interval (seconds)")
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval (seconds)")
 }
