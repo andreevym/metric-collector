@@ -62,6 +62,6 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 		statusCode, contentType, get = testRequest(t, ts, http.MethodGet, fmt.Sprintf("/value/counter/test%d", key))
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, "text/plain; charset=utf-8", contentType)
-		assert.Equal(t, fmt.Sprintf("%d", val2), get)
+		assert.Equal(t, fmt.Sprintf("%d", val1+val2), get)
 	}
 }
