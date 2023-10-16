@@ -8,15 +8,20 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandler_GaugeEndToEnd(t *testing.T) {
 	counterMemStorage := mem.NewStorage()
 	gaugeMemStorage := mem.NewStorage()
-	server := handlers.NewServer(counterMemStorage, gaugeMemStorage)
-	ts := httptest.NewServer(handlers.Router(server))
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+	require.NoError(t, err)
+	serviceHandlers := handlers.NewServiceHandlers(store)
+	router := handlers.NewRouter(serviceHandlers)
+	ts := httptest.NewServer(router)
 	defer ts.Close()
 
 	count := 3
@@ -25,12 +30,12 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 		val1 := rand.Int()
 		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, fmt.Sprintf("/update/gauge/test%d/%d", key, val1))
 		assert.Equal(t, http.StatusOK, statusCode)
-		assert.Equal(t, "text/plain", contentType)
+		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
 		assert.Equal(t, "", get)
 		val2 := rand.Int()
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, fmt.Sprintf("/update/gauge/test%d/%d", key, val2))
 		assert.Equal(t, http.StatusOK, statusCode)
-		assert.Equal(t, "text/plain", contentType)
+		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
 		assert.Equal(t, "", get)
 		statusCode, contentType, get = testRequest(t, ts, http.MethodGet, fmt.Sprintf("/value/gauge/test%d", key))
 		assert.Equal(t, http.StatusOK, statusCode)
@@ -42,8 +47,11 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 func TestHandler_CounterEndToEnd(t *testing.T) {
 	counterMemStorage := mem.NewStorage()
 	gaugeMemStorage := mem.NewStorage()
-	server := handlers.NewServer(counterMemStorage, gaugeMemStorage)
-	ts := httptest.NewServer(handlers.Router(server))
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+	require.NoError(t, err)
+	serviceHandlers := handlers.NewServiceHandlers(store)
+	router := handlers.NewRouter(serviceHandlers)
+	ts := httptest.NewServer(router)
 	defer ts.Close()
 
 	count := 3
@@ -52,12 +60,12 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 		val1 := rand.Int()
 		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, fmt.Sprintf("/update/counter/test%d/%d", key, val1))
 		assert.Equal(t, http.StatusOK, statusCode)
-		assert.Equal(t, "text/plain", contentType)
+		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
 		assert.Equal(t, "", get)
 		val2 := rand.Int()
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, fmt.Sprintf("/update/counter/test%d/%d", key, val2))
 		assert.Equal(t, http.StatusOK, statusCode)
-		assert.Equal(t, "text/plain", contentType)
+		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
 		assert.Equal(t, "", get)
 		statusCode, contentType, get = testRequest(t, ts, http.MethodGet, fmt.Sprintf("/value/counter/test%d", key))
 		assert.Equal(t, http.StatusOK, statusCode)

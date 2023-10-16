@@ -5,12 +5,18 @@ import (
 	"net/http"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
 
-func StartServer(addr string) {
+func Start(address string) {
 	counterMemStorage := mem.NewStorage()
 	gaugeMemStorage := mem.NewStorage()
-	s := handlers.NewServer(counterMemStorage, gaugeMemStorage)
-	log.Fatal(http.ListenAndServe(addr, handlers.Router(s)))
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+	if err != nil {
+		log.Fatal(err)
+	}
+	serviceHandlers := handlers.NewServiceHandlers(store)
+	router := handlers.NewRouter(serviceHandlers)
+	log.Fatal(http.ListenAndServe(address, router))
 }

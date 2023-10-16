@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGetHandler(t *testing.T) {
@@ -149,8 +151,11 @@ func TestGetHandler(t *testing.T) {
 				err := gaugeMemStorage.Update(k, []string{v})
 				assert.NoError(t, err)
 			}
-			server := handlers.NewServer(counterMemStorage, gaugeMemStorage)
-			ts := httptest.NewServer(handlers.Router(server))
+			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+			require.NoError(t, err)
+			serviceHandlers := handlers.NewServiceHandlers(store)
+			router := handlers.NewRouter(serviceHandlers)
+			ts := httptest.NewServer(router)
 			defer ts.Close()
 
 			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request)

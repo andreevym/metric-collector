@@ -1,26 +1,20 @@
 package main
 
 import (
-	"flag"
 	"log"
 
+	"github.com/andreevym/metric-collector/internal/config"
 	"github.com/andreevym/metric-collector/internal/server"
-	"github.com/caarlos0/env"
 )
 
 func main() {
-	// парсим переданные серверу аргументы в зарегистрированные переменные
-	flag.Parse()
-
-	var config EnvConfig
-	err := env.Parse(&config)
+	cfg, err := config.ServerParse()
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	if config.Address != "" {
-		flagRunAddr = config.Address
+	if cfg == nil {
+		log.Fatal("server config can't be nil")
 	}
 
-	server.StartServer(flagRunAddr)
+	server.Start(cfg.Address)
 }

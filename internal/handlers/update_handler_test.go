@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +28,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name: "success update counter",
 			want: want{
-				contentType: "text/plain",
+				contentType: handlers.UpdateMetricContentType,
 				statusCode:  http.StatusOK,
 				resp:        "",
 			},
@@ -37,7 +38,7 @@ func TestUpdateHandler(t *testing.T) {
 		{
 			name: "success update gauge",
 			want: want{
-				contentType: "text/plain",
+				contentType: handlers.UpdateMetricContentType,
 				statusCode:  http.StatusOK,
 				resp:        "",
 			},
@@ -49,8 +50,11 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			counterMemStorage := mem.NewStorage()
 			gaugeMemStorage := mem.NewStorage()
-			server := handlers.NewServer(counterMemStorage, gaugeMemStorage)
-			ts := httptest.NewServer(handlers.Router(server))
+			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+			require.NoError(t, err)
+			serviceHandlers := handlers.NewServiceHandlers(store)
+			router := handlers.NewRouter(serviceHandlers)
+			ts := httptest.NewServer(router)
 			defer ts.Close()
 
 			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request)
