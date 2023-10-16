@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"flag"
 
 	"github.com/caarlos0/env"
@@ -24,6 +25,9 @@ func ServerParse() (*ServerConfig, error) {
 	err := env.Parse(config)
 	if err != nil {
 		return nil, err
+	}
+	if config == nil {
+		return nil, errors.New("config can't be nil")
 	}
 
 	if config.Address != "" {
