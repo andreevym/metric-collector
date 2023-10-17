@@ -7,6 +7,10 @@ import (
 	"github.com/andreevym/metric-collector/internal/server"
 )
 
+func init() {
+	config.ServerFlags()
+}
+
 func main() {
 	cfg, err := config.ServerParse()
 	if err != nil {
@@ -16,5 +20,8 @@ func main() {
 		log.Fatal("server config can't be nil")
 	}
 
-	server.Start(cfg.Address)
+	err = server.Start(cfg.Address)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

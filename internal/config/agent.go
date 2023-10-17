@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"flag"
 
 	"github.com/caarlos0/env"
@@ -22,11 +21,13 @@ var (
 	flagPollInterval int
 )
 
-func AgentParse() (*AgentConfig, error) {
+func AgentFlags() {
 	flag.StringVar(&flagAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&flagReportInterval, "r", 10, "report interval (seconds)")
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval (seconds)")
+}
 
+func AgentParse() (*AgentConfig, error) {
 	// парсим переданные серверу агенту в зарегистрированные переменные
 	flag.Parse()
 
@@ -34,9 +35,6 @@ func AgentParse() (*AgentConfig, error) {
 	err := env.Parse(config)
 	if err != nil {
 		return nil, err
-	}
-	if config == nil {
-		return nil, errors.New("config can't be nil")
 	}
 
 	if config.Address == "" {

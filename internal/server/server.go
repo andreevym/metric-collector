@@ -1,7 +1,6 @@
 package server
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
@@ -9,14 +8,15 @@ import (
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
 
-func Start(address string) {
+func Start(address string) error {
 	counterMemStorage := mem.NewStorage()
 	gaugeMemStorage := mem.NewStorage()
 	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	serviceHandlers := handlers.NewServiceHandlers(store)
 	router := handlers.NewRouter(serviceHandlers)
-	log.Fatal(http.ListenAndServe(address, router))
+
+	return http.ListenAndServe(address, router)
 }

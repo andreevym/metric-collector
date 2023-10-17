@@ -8,6 +8,10 @@ import (
 	"github.com/andreevym/metric-collector/internal/metric"
 )
 
+func init() {
+	config.AgentFlags()
+}
+
 func main() {
 	cfg, err := config.AgentParse()
 	if err != nil {
@@ -19,5 +23,6 @@ func main() {
 
 	pollDuration := time.Duration(cfg.PollInterval) * time.Second
 	reportDuration := time.Duration(cfg.ReportInterval) * time.Second
+
 	metric.Start(pollDuration, reportDuration, cfg.Address)
 }
