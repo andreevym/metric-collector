@@ -31,8 +31,8 @@ func AgentParse() (*AgentConfig, error) {
 	// парсим переданные серверу агенту в зарегистрированные переменные
 	flag.Parse()
 
-	var config *AgentConfig
-	err := env.Parse(config)
+	var config AgentConfig
+	err := env.Parse(&config)
 	if err != nil {
 		return nil, err
 	}
@@ -51,5 +51,5 @@ func AgentParse() (*AgentConfig, error) {
 		config.ReportInterval = flagReportInterval
 	}
 
-	return config, nil
+	return &config, nil
 }
