@@ -8,11 +8,9 @@ import (
 	"github.com/andreevym/metric-collector/internal/metric"
 )
 
-func init() {
-	config.AgentFlags()
-}
-
 func main() {
+	config.AgentFlags()
+
 	cfg, err := config.AgentParse()
 	if err != nil {
 		log.Fatal(err)

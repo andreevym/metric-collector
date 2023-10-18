@@ -7,11 +7,9 @@ import (
 	"github.com/andreevym/metric-collector/internal/server"
 )
 
-func init() {
-	config.ServerFlags()
-}
-
 func main() {
+	config.ServerFlags()
+
 	cfg, err := config.ServerParse()
 	if err != nil {
 		log.Fatal(err)
