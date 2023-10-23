@@ -1,6 +1,8 @@
 package handlers
 
-import "github.com/andreevym/metric-collector/internal/multistorage"
+import (
+	"github.com/andreevym/metric-collector/internal/multistorage"
+)
 
 type ServiceHandlers struct {
 	storage *multistorage.Storage

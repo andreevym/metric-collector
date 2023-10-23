@@ -4,14 +4,12 @@ import (
 	"log"
 	"time"
 
-	"github.com/andreevym/metric-collector/internal/config"
+	"github.com/andreevym/metric-collector/internal/config/agentconfig"
 	"github.com/andreevym/metric-collector/internal/metric"
 )
 
 func main() {
-	config.AgentFlags()
-
-	cfg, err := config.AgentParse()
+	cfg, err := agentconfig.Flags()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
@@ -18,5 +19,5 @@ func Start(address string) error {
 	serviceHandlers := handlers.NewServiceHandlers(store)
 	router := handlers.NewRouter(serviceHandlers)
 
-	return http.ListenAndServe(address, router)
+	return http.ListenAndServe(address, middleware.RequestLogger(router))
 }
