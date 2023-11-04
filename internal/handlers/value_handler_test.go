@@ -1,8 +1,11 @@
 package handlers_test
 
 import (
+	bytes2 "bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
@@ -27,11 +30,12 @@ func TestGetHandler(t *testing.T) {
 		createGauge   map[string]string
 		updateCounter map[string]string
 		updateGauge   map[string]string
+		metrics       handlers.Metrics
 	}{
 		{
 			name: "success get counter",
 			want: want{
-				contentType: "text/plain; charset=utf-8",
+				contentType: handlers.ValueMetricContentType,
 				statusCode:  http.StatusOK,
 				resp:        "1",
 			},
@@ -43,13 +47,17 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request:    "/value/counter/test",
-			httpMethod: http.MethodGet,
+			request: "/value/",
+			metrics: handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeCounter,
+			},
+			httpMethod: http.MethodPost,
 		},
 		{
 			name: "success get gauge",
 			want: want{
-				contentType: "text/plain; charset=utf-8",
+				contentType: handlers.ValueMetricContentType,
 				statusCode:  http.StatusOK,
 				resp:        "3",
 			},
@@ -61,13 +69,17 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request:    "/value/gauge/test",
-			httpMethod: http.MethodGet,
+			request: "/value/",
+			metrics: handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeGauge,
+			},
+			httpMethod: http.MethodPost,
 		},
 		{
 			name: "success get counter after update",
 			want: want{
-				contentType: "text/plain; charset=utf-8",
+				contentType: handlers.ValueMetricContentType,
 				statusCode:  http.StatusOK,
 				resp:        "3",
 			},
@@ -79,13 +91,17 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request:    "/value/counter/test",
-			httpMethod: http.MethodGet,
+			request:    "/value/",
+			httpMethod: http.MethodPost,
+			metrics: handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeCounter,
+			},
 		},
 		{
 			name: "success get gauge after update",
 			want: want{
-				contentType: "text/plain; charset=utf-8",
+				contentType: handlers.ValueMetricContentType,
 				statusCode:  http.StatusOK,
 				resp:        "3",
 			},
@@ -97,38 +113,54 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request:    "/value/gauge/test",
-			httpMethod: http.MethodGet,
+			request:    "/value/",
+			httpMethod: http.MethodPost,
+			metrics: handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeGauge,
+			},
 		},
 		{
 			name: "unknown 'metricName' get gauge",
 			want: want{
-				contentType: "",
+				contentType: handlers.ValueMetricContentType,
 				statusCode:  http.StatusNotFound,
 				resp:        "",
 			},
-			request:    "/value/gauge/test",
-			httpMethod: http.MethodGet,
+			request:    "/value/",
+			httpMethod: http.MethodPost,
+			metrics: handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeGauge,
+			},
 		},
 		{
 			name: "unknown 'metricName' get counter",
 			want: want{
-				contentType: "",
+				contentType: handlers.ValueMetricContentType,
 				statusCode:  http.StatusNotFound,
 				resp:        "",
 			},
-			request:    "/value/counter/test",
-			httpMethod: http.MethodGet,
+			request:    "/value/",
+			httpMethod: http.MethodPost,
+			metrics: handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeCounter,
+			},
 		},
 		{
 			name: "unknown 'metricType'",
 			want: want{
-				contentType: "",
+				contentType: handlers.ValueMetricContentType,
 				statusCode:  http.StatusNotFound,
 				resp:        "",
 			},
-			request:    "/value/TestGauge/test",
-			httpMethod: http.MethodGet,
+			request:    "/value/",
+			httpMethod: http.MethodPost,
+			metrics: handlers.Metrics{
+				ID:    "test",
+				MType: "TestGauge",
+			},
 		},
 	}
 	for _, test := range tests {
@@ -157,11 +189,21 @@ func TestGetHandler(t *testing.T) {
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
-
-			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request)
+			bytes, err := json.Marshal(test.metrics)
+			require.NoError(t, err)
+			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, bytes2.NewBuffer(bytes))
 			assert.Equal(t, test.want.statusCode, statusCode)
-			assert.Equal(t, test.want.contentType, contentType)
-			assert.Equal(t, test.want.resp, get)
+
+			if test.want.resp != "" {
+				assert.Equal(t, test.want.contentType, contentType)
+
+				f, err := strconv.ParseFloat(test.want.resp, 64)
+				require.NoError(t, err)
+				test.metrics.Value = &f
+				bytes, err = json.Marshal(test.metrics)
+				require.NoError(t, err)
+				assert.JSONEq(t, string(bytes), get)
+			}
 		})
 	}
 }

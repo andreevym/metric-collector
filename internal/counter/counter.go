@@ -15,31 +15,23 @@ func Store(s repository.Storage, metricName string, metricValue string) error {
 		return err
 	}
 	if len(metricValues) == 0 {
-		err = s.Create(metricName, metricValue)
-		if err != nil {
-			return err
-		}
-	} else {
-		existsMetricVal, err := strconv.ParseInt(metricValues[0], 10, 64)
-		if err != nil {
-			return err
-		}
-		v, err := strconv.ParseInt(metricValue, 10, 64)
-		if err != nil {
-			return err
-		}
-		newVal := fmt.Sprintf("%d", existsMetricVal+v)
-		err = s.Update(metricName, []string{newVal})
-		if err != nil {
-			return err
-		}
+		return s.Create(metricName, metricValue)
 	}
 
-	return nil
+	existsMetricVal, err := strconv.ParseFloat(metricValues[0], 64)
+	if err != nil {
+		return err
+	}
+	v, err := strconv.ParseFloat(metricValue, 64)
+	if err != nil {
+		return err
+	}
+	newVal := fmt.Sprintf("%v", existsMetricVal+v)
+	return s.Update(metricName, []string{newVal})
 }
 
 func Validate(metricValue string) error {
-	_, err := strconv.ParseInt(metricValue, 10, 64)
+	_, err := strconv.ParseFloat(metricValue, 64)
 	return err
 }
 
