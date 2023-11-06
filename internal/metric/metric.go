@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"runtime"
 	"strconv"
@@ -45,12 +46,12 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 			fmt.Printf("failed to collect metrics by mem stat: %v", err)
 			break
 		}
+		err = sendPollCount(url)
+		if err != nil {
+			fmt.Printf("failed to send counter request to server: %v", err)
+			break
+		}
 		for _, metrics := range stats {
-			err := sendCounter(metrics, url)
-			if err != nil {
-				fmt.Printf("failed to send counter request to server: %v", err)
-				break
-			}
 			err = sendGauge(metrics, url)
 			if err != nil {
 				fmt.Printf("failed to send gauge request to server: %v", err)
@@ -71,7 +72,7 @@ func pollLastMemStatByTicker(ticker *time.Ticker) {
 }
 
 func sendGauge(metrics handlers.Metrics, url string) error {
-	metrics.Value = nil
+	metrics.Delta = nil
 	b, err := json.Marshal(metrics)
 	if err != nil {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
@@ -83,7 +84,7 @@ func sendGauge(metrics handlers.Metrics, url string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	_, err = retry(req, defaultRetryCount, defaultRetryWait)
+	err = retry(req, defaultRetryCount, defaultRetryWait)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
@@ -92,9 +93,13 @@ func sendGauge(metrics handlers.Metrics, url string) error {
 	return nil
 }
 
-func sendCounter(metrics handlers.Metrics, url string) error {
-	metrics.Value = nil
-	metrics.Delta = &pollCount
+func sendPollCount(url string) error {
+	metrics := handlers.Metrics{
+		ID:    PollCount,
+		MType: multistorage.MetricTypeCounter,
+		Delta: &pollCount,
+		Value: nil,
+	}
 	b, err := json.Marshal(metrics)
 	if err != nil {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
@@ -106,7 +111,7 @@ func sendCounter(metrics handlers.Metrics, url string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	_, err = retry(req, defaultRetryCount, defaultRetryWait)
+	err = retry(req, defaultRetryCount, defaultRetryWait)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
@@ -115,22 +120,30 @@ func sendCounter(metrics handlers.Metrics, url string) error {
 	return nil
 }
 
-func retry(request *http.Request, count int, d time.Duration) (*http.Response, error) {
+func retry(request *http.Request, count int, d time.Duration) error {
 	var err error
 	var resp *http.Response
 	for i := 0; i < count; i++ {
 		resp, err = http.DefaultClient.Do(request)
 		if err == nil && resp.StatusCode == http.StatusOK && resp.Body.Close() == nil {
-			return resp, nil
+			return nil
 		}
 		time.Sleep(d)
 	}
 
-	return nil, err
+	return err
 }
 
 func collectMetricsByMemStat(stats *runtime.MemStats) ([]handlers.Metrics, error) {
 	m := make([]handlers.Metrics, 0)
+
+	f := rand.Float64()
+	m = append(m, handlers.Metrics{
+		ID:    RandomValue,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
 
 	f, err := strconv.ParseFloat(fmt.Sprintf("%v", stats.Alloc), 64)
 	if err != nil {

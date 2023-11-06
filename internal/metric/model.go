@@ -1,6 +1,13 @@
 package metric
 
 const (
+	// PollCount counter
+	PollCount = "PollCount"
+)
+
+// gauge
+const (
+	RandomValue   = "RandomValue"
 	Alloc         = "Alloc"
 	BuckHashSys   = "BuckHashSys"
 	Frees         = "Frees"
