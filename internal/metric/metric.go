@@ -14,6 +14,11 @@ import (
 	"github.com/andreevym/metric-collector/internal/multistorage"
 )
 
+const (
+	defaultRetryCount = 30
+	defaultRetryWait  = time.Second
+)
+
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
 	// при каждом обновлении метрики из пакета runtime (на каждый pollInterval — см. ниже).
@@ -78,7 +83,7 @@ func sendGauge(metrics handlers.Metrics, url string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	resp, err := retry(req, 7, time.Second)
+	resp, err := retry(req, defaultRetryCount, defaultRetryWait)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
@@ -110,7 +115,7 @@ func sendCounter(metrics handlers.Metrics, url string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	resp, err := retry(req, 7, time.Second)
+	resp, err := retry(req, defaultRetryCount, defaultRetryWait)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
