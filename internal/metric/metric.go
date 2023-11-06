@@ -16,7 +16,7 @@ import (
 
 const (
 	defaultRetryCount = 30
-	defaultRetryWait  = time.Second
+	defaultRetryWait  = 50 * time.Millisecond
 )
 
 var (
