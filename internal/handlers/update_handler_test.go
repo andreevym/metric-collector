@@ -27,7 +27,7 @@ func TestUpdateHandler(t *testing.T) {
 		name       string
 		want       want
 		request    string
-		metrics    handlers.Metrics
+		metrics    *handlers.Metrics
 		httpMethod string
 	}{
 		{
@@ -39,7 +39,7 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,
-			metrics: handlers.Metrics{
+			metrics: &handlers.Metrics{
 				ID:    "test",
 				MType: multistorage.MetricTypeCounter,
 				Delta: &d,
@@ -54,11 +54,31 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,
-			metrics: handlers.Metrics{
+			metrics: &handlers.Metrics{
 				ID:    "test",
 				MType: multistorage.MetricTypeGauge,
 				Value: &f,
 			},
+		},
+		{
+			name: "success update counter",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"counter\",\"delta\":1}",
+			},
+			request:    "/update/counter/test/1",
+			httpMethod: http.MethodPost,
+		},
+		{
+			name: "success update gauge",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"gauge\",\"value\":1}",
+			},
+			request:    "/update/gauge/test/1",
+			httpMethod: http.MethodPost,
 		},
 	}
 	for _, test := range tests {
@@ -71,9 +91,14 @@ func TestUpdateHandler(t *testing.T) {
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
-			marshal, err := json.Marshal(test.metrics)
-			require.NoError(t, err)
-			reqBody := bytes.NewBuffer(marshal)
+			var reqBody *bytes.Buffer
+			if test.metrics != nil {
+				marshal, err := json.Marshal(test.metrics)
+				require.NoError(t, err)
+				reqBody = bytes.NewBuffer(marshal)
+			} else {
+				reqBody = bytes.NewBuffer([]byte{})
+			}
 			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, reqBody)
 			assert.Equal(t, test.want.statusCode, statusCode)
 			assert.Equal(t, test.want.contentType, contentType)
