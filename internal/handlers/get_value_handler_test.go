@@ -1,11 +1,9 @@
 package handlers_test
 
 import (
-	bytes2 "bytes"
-	"encoding/json"
+	"bytes"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
@@ -15,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetHandler(t *testing.T) {
+func TestGetValueHandler(t *testing.T) {
 	type want struct {
 		contentType string
 		resp        string
@@ -30,12 +28,11 @@ func TestGetHandler(t *testing.T) {
 		createGauge   map[string]string
 		updateCounter map[string]string
 		updateGauge   map[string]string
-		metrics       *handlers.Metrics
 	}{
 		{
 			name: "success get counter",
 			want: want{
-				contentType: handlers.ValueMetricContentType,
+				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusOK,
 				resp:        "1",
 			},
@@ -47,17 +44,13 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request: "/value/",
-			metrics: &handlers.Metrics{
-				ID:    "test",
-				MType: multistorage.MetricTypeCounter,
-			},
-			httpMethod: http.MethodPost,
+			request:    "/value/counter/test",
+			httpMethod: http.MethodGet,
 		},
 		{
 			name: "success get gauge",
 			want: want{
-				contentType: handlers.ValueMetricContentType,
+				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusOK,
 				resp:        "3",
 			},
@@ -69,17 +62,13 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request: "/value/",
-			metrics: &handlers.Metrics{
-				ID:    "test",
-				MType: multistorage.MetricTypeGauge,
-			},
-			httpMethod: http.MethodPost,
+			request:    "/value/gauge/test",
+			httpMethod: http.MethodGet,
 		},
 		{
 			name: "success get counter after update",
 			want: want{
-				contentType: handlers.ValueMetricContentType,
+				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusOK,
 				resp:        "3",
 			},
@@ -91,17 +80,13 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request:    "/value/",
-			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
-				ID:    "test",
-				MType: multistorage.MetricTypeCounter,
-			},
+			request:    "/value/counter/test",
+			httpMethod: http.MethodGet,
 		},
 		{
 			name: "success get gauge after update",
 			want: want{
-				contentType: handlers.ValueMetricContentType,
+				contentType: "text/plain; charset=utf-8",
 				statusCode:  http.StatusOK,
 				resp:        "3",
 			},
@@ -113,54 +98,38 @@ func TestGetHandler(t *testing.T) {
 				"test":  "3",
 				"test2": "4",
 			},
-			request:    "/value/",
-			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
-				ID:    "test",
-				MType: multistorage.MetricTypeGauge,
-			},
+			request:    "/value/gauge/test",
+			httpMethod: http.MethodGet,
 		},
 		{
 			name: "unknown 'metricName' get gauge",
 			want: want{
-				contentType: handlers.ValueMetricContentType,
+				contentType: "",
 				statusCode:  http.StatusNotFound,
 				resp:        "",
 			},
-			request:    "/value/",
-			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
-				ID:    "test",
-				MType: multistorage.MetricTypeGauge,
-			},
+			request:    "/value/gauge/test",
+			httpMethod: http.MethodGet,
 		},
 		{
 			name: "unknown 'metricName' get counter",
 			want: want{
-				contentType: handlers.ValueMetricContentType,
+				contentType: "",
 				statusCode:  http.StatusNotFound,
 				resp:        "",
 			},
-			request:    "/value/",
-			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
-				ID:    "test",
-				MType: multistorage.MetricTypeCounter,
-			},
+			request:    "/value/counter/test",
+			httpMethod: http.MethodGet,
 		},
 		{
 			name: "unknown 'metricType'",
 			want: want{
-				contentType: handlers.ValueMetricContentType,
+				contentType: "",
 				statusCode:  http.StatusNotFound,
 				resp:        "",
 			},
-			request:    "/value/",
-			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
-				ID:    "test",
-				MType: "TestGauge",
-			},
+			request:    "/value/TestGauge/test",
+			httpMethod: http.MethodGet,
 		},
 	}
 	for _, test := range tests {
@@ -189,39 +158,11 @@ func TestGetHandler(t *testing.T) {
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
-			var reqBody []byte
-			if test.metrics != nil {
-				reqBody, err = json.Marshal(test.metrics)
-				require.NoError(t, err)
-			} else {
-				reqBody = []byte{}
-			}
-			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, bytes2.NewBuffer(reqBody))
+
+			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, bytes.NewBuffer([]byte{}))
 			assert.Equal(t, test.want.statusCode, statusCode)
-
-			if test.want.resp != "" {
-				assert.Equal(t, test.want.contentType, contentType)
-
-				respMetrics := handlers.Metrics{}
-				err = json.Unmarshal([]byte(get), &respMetrics)
-				require.NoError(t, err)
-
-				if test.metrics != nil {
-					if test.metrics.MType == multistorage.MetricTypeGauge {
-						v, err := strconv.ParseFloat(test.want.resp, 64)
-						require.NoError(t, err)
-						test.metrics.Value = &v
-					} else if test.metrics.MType == multistorage.MetricTypeCounter {
-						v, err := strconv.ParseInt(test.want.resp, 10, 64)
-						require.NoError(t, err)
-						test.metrics.Delta = &v
-					}
-
-					bytes, err := json.Marshal(test.metrics)
-					require.NoError(t, err)
-					assert.JSONEq(t, string(bytes), get)
-				}
-			}
+			assert.Equal(t, test.want.contentType, contentType)
+			assert.Equal(t, test.want.resp, get)
 		})
 	}
 }
