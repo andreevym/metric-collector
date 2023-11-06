@@ -94,24 +94,21 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
 		return err
 	}
-	var resp *http.Response
 	err = retry.Do(
 		func() error {
-			var err error
-			resp, err = http.Post(fmt.Sprintf("%s/update", url), handlers.UpdateMetricContentType, bytes.NewBuffer(b))
-			return err
+			resp, err := http.Post(fmt.Sprintf("%s/update", url), handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+			err = resp.Body.Close()
+			if err != nil {
+				zap.Error(err)
+				return err
+			}
+			return nil
 		},
 		retry.Attempts(defaultRetryCount),
 		retry.OnRetry(func(n uint, err error) {
 			log.Printf("Retrying request after error: %v", err)
 		}),
 	)
-	if err != nil {
-		zap.Error(err)
-		return err
-	}
-
-	err = resp.Body.Close()
 	if err != nil {
 		zap.Error(err)
 		return err
