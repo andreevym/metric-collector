@@ -72,11 +72,12 @@ func sendGauge(metrics handlers.Metrics, url string) error {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
 		return err
 	}
-	req, err := http.NewRequest(url, handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/update", url), bytes.NewBuffer(b))
 	if err != nil {
 		fmt.Printf("failed to create new request: %v\n", err)
 		return err
 	}
+	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 	resp, err := retry(req, 7, time.Second)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
@@ -103,11 +104,12 @@ func sendCounter(metrics handlers.Metrics, url string) error {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
 		return err
 	}
-	req, err := http.NewRequest(url, handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/update", url), bytes.NewBuffer(b))
 	if err != nil {
 		fmt.Printf("failed to create new request: %v\n", err)
 		return err
 	}
+	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 	resp, err := retry(req, 7, time.Second)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
@@ -131,7 +133,7 @@ func retry(request *http.Request, count int, d time.Duration) (*http.Response, e
 	var resp *http.Response
 	for i := 0; i < count; i++ {
 		resp, err = http.DefaultClient.Do(request)
-		if err == nil {
+		if err == nil && resp.StatusCode == http.StatusOK {
 			return resp, nil
 		}
 		time.Sleep(d)
