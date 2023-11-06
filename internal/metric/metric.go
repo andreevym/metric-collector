@@ -3,7 +3,6 @@ package metric
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"runtime"
@@ -72,6 +71,7 @@ func pollLastMemStatByTicker(ticker *time.Ticker) {
 }
 
 func sendGauge(metrics handlers.Metrics, url string) error {
+	metrics.Value = nil
 	b, err := json.Marshal(metrics)
 	if err != nil {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
@@ -83,26 +83,17 @@ func sendGauge(metrics handlers.Metrics, url string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	resp, err := retry(req, defaultRetryCount, defaultRetryWait)
+	_, err = retry(req, defaultRetryCount, defaultRetryWait)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
 	}
-	err = resp.Body.Close()
-	if err != nil {
-		fmt.Printf("failed to handle response from server: close resp body: %v", err)
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		m := fmt.Sprintf("invalid response status. found status code %d but expected %d",
-			resp.StatusCode, http.StatusOK)
-		fmt.Println(m)
-		return errors.New(m)
-	}
+
 	return nil
 }
 
 func sendCounter(metrics handlers.Metrics, url string) error {
+	metrics.Value = nil
 	metrics.Delta = &pollCount
 	b, err := json.Marshal(metrics)
 	if err != nil {
@@ -115,21 +106,12 @@ func sendCounter(metrics handlers.Metrics, url string) error {
 		return err
 	}
 	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	resp, err := retry(req, defaultRetryCount, defaultRetryWait)
+	_, err = retry(req, defaultRetryCount, defaultRetryWait)
 	if err != nil {
 		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
 	}
-	err = resp.Body.Close()
-	if err != nil {
-		fmt.Printf("failed to handle response from server: close resp body: %v", err)
-		return err
-	}
-	if resp.StatusCode != http.StatusOK {
-		fmt.Printf("invalid response status. found status code %d but expected %d",
-			resp.StatusCode, http.StatusOK)
-		return err
-	}
+
 	return nil
 }
 
@@ -138,7 +120,7 @@ func retry(request *http.Request, count int, d time.Duration) (*http.Response, e
 	var resp *http.Response
 	for i := 0; i < count; i++ {
 		resp, err = http.DefaultClient.Do(request)
-		if err == nil && resp.StatusCode == http.StatusOK {
+		if err == nil && resp.StatusCode == http.StatusOK && resp.Body.Close() == nil {
 			return resp, nil
 		}
 		time.Sleep(d)
