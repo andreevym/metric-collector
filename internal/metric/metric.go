@@ -19,7 +19,6 @@ import (
 
 const (
 	defaultRetryCount = 30
-	defaultRetryWait  = 50 * time.Millisecond
 )
 
 var (
@@ -111,7 +110,12 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 		zap.Error(err)
 		return err
 	}
-	defer resp.Body.Close()
+
+	err = resp.Body.Close()
+	if err != nil {
+		zap.Error(err)
+		return err
+	}
 
 	return nil
 }
