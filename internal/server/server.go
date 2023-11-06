@@ -19,5 +19,5 @@ func Start(address string) error {
 	serviceHandlers := handlers.NewServiceHandlers(store)
 	router := handlers.NewRouter(serviceHandlers)
 
-	return http.ListenAndServe(address, middleware.RequestLogger(router))
+	return http.ListenAndServe(address, middleware.RequestLogger(middleware.GzipMiddleware(router)))
 }

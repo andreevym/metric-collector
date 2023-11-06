@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/andreevym/metric-collector/internal/compressor"
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/avast/retry-go"
@@ -96,7 +97,18 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 	}
 	err = retry.Do(
 		func() error {
-			resp, err := http.Post(fmt.Sprintf("%s/update", url), handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+			compressedBytes, err := compressor.Compress(b)
+			if err != nil {
+				return err
+			}
+			request, err := http.NewRequest(
+				http.MethodPost,
+				fmt.Sprintf("%s/update", url),
+				bytes.NewBuffer(compressedBytes),
+			)
+			request.Header.Add("Content-Type", handlers.UpdateMetricContentType)
+			request.Header.Add("Content-Encoding", compressor.ContentEncoding)
+			resp, err := http.DefaultClient.Do(request)
 			if err != nil {
 				return err
 			}
