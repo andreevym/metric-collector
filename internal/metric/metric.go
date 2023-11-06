@@ -42,8 +42,16 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 			break
 		}
 		for _, metrics := range stats {
-			sendCounter(metrics, url)
-			sendGauge(metrics, url)
+			err := sendCounter(metrics, url)
+			if err != nil {
+				fmt.Printf("failed to send counter request to server: %v", err)
+				break
+			}
+			err = sendGauge(metrics, url)
+			if err != nil {
+				fmt.Printf("failed to send gauge request to server: %v", err)
+				break
+			}
 		}
 	}
 }
@@ -64,9 +72,14 @@ func sendGauge(metrics handlers.Metrics, url string) error {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
 		return err
 	}
-	resp, err := http.Post(url, handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+	req, err := http.NewRequest(url, handlers.UpdateMetricContentType, bytes.NewBuffer(b))
 	if err != nil {
-		fmt.Printf("failed to send metric: invalid send http post: %v", err)
+		fmt.Printf("failed to create new request: %v\n", err)
+		return err
+	}
+	resp, err := retry(req, 7, time.Second)
+	if err != nil {
+		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
 	}
 	err = resp.Body.Close()
@@ -90,9 +103,14 @@ func sendCounter(metrics handlers.Metrics, url string) error {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
 		return err
 	}
-	resp, err := http.Post(url, handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+	req, err := http.NewRequest(url, handlers.UpdateMetricContentType, bytes.NewBuffer(b))
 	if err != nil {
-		fmt.Printf("failed to send metric: invalid send http post: %v", err)
+		fmt.Printf("failed to create new request: %v\n", err)
+		return err
+	}
+	resp, err := retry(req, 7, time.Second)
+	if err != nil {
+		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
 		return err
 	}
 	err = resp.Body.Close()
@@ -106,6 +124,20 @@ func sendCounter(metrics handlers.Metrics, url string) error {
 		return err
 	}
 	return nil
+}
+
+func retry(request *http.Request, count int, d time.Duration) (*http.Response, error) {
+	var err error
+	var resp *http.Response
+	for i := 0; i < count; i++ {
+		resp, err = http.DefaultClient.Do(request)
+		if err == nil {
+			return resp, nil
+		}
+		time.Sleep(d)
+	}
+
+	return nil, err
 }
 
 func collectMetricsByMemStat(stats *runtime.MemStats) ([]handlers.Metrics, error) {
