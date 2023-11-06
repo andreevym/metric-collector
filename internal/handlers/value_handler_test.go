@@ -197,9 +197,16 @@ func TestGetHandler(t *testing.T) {
 			if test.want.resp != "" {
 				assert.Equal(t, test.want.contentType, contentType)
 
-				f, err := strconv.ParseFloat(test.want.resp, 64)
-				require.NoError(t, err)
-				test.metrics.Value = &f
+				if test.metrics.MType == multistorage.MetricTypeGauge {
+					v, err := strconv.ParseFloat(test.want.resp, 64)
+					require.NoError(t, err)
+					test.metrics.Value = &v
+				} else if test.metrics.MType == multistorage.MetricTypeCounter {
+					v, err := strconv.ParseInt(test.want.resp, 10, 64)
+					require.NoError(t, err)
+					test.metrics.Delta = &v
+				}
+
 				bytes, err = json.Marshal(test.metrics)
 				require.NoError(t, err)
 				assert.JSONEq(t, string(bytes), get)

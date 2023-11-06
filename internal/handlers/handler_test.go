@@ -81,43 +81,43 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 	count := 3
 	for i := 0; i < count; i++ {
 		key := rand.Int()
-		val1 := float64(rand.Int())
+		val1 := rand.Int63()
 		bytes, err := json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
 			MType: multistorage.MetricTypeCounter,
-			Value: &val1,
+			Delta: &val1,
 		})
 		require.NoError(t, err)
 		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
-		assert.Equal(t, http.StatusOK, statusCode)
-		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
-		assert.Equal(t, "", get)
-		val2 := float64(rand.Int())
+		require.Equal(t, http.StatusOK, statusCode)
+		require.Equal(t, handlers.UpdateMetricContentType, contentType)
+		require.Equal(t, "", get)
+		val2 := rand.Int63()
 		bytes, err = json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
 			MType: multistorage.MetricTypeCounter,
-			Value: &val2,
+			Delta: &val2,
 		})
 		require.NoError(t, err)
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
-		assert.Equal(t, http.StatusOK, statusCode)
-		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
-		assert.Equal(t, "", get)
+		require.Equal(t, http.StatusOK, statusCode)
+		require.Equal(t, handlers.UpdateMetricContentType, contentType)
+		require.Equal(t, "", get)
 		bytes, err = json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
 			MType: multistorage.MetricTypeCounter,
 		})
 		require.NoError(t, err)
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes2.NewBuffer(bytes))
-		assert.Equal(t, http.StatusOK, statusCode)
-		assert.Equal(t, handlers.ValueMetricContentType, contentType)
-		f := val1 + val2
+		require.Equal(t, http.StatusOK, statusCode)
+		require.Equal(t, handlers.ValueMetricContentType, contentType)
+		res := val1 + val2
 		bytes, err = json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
 			MType: multistorage.MetricTypeCounter,
-			Value: &f,
+			Delta: &res,
 		})
 		require.NoError(t, err)
-		assert.JSONEq(t, string(bytes), get)
+		require.JSONEq(t, string(bytes), get)
 	}
 }

@@ -17,7 +17,7 @@ import (
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
 	// при каждом обновлении метрики из пакета runtime (на каждый pollInterval — см. ниже).
-	pollCount    int
+	pollCount    int64
 	lastMemStats *runtime.MemStats
 )
 
@@ -84,11 +84,7 @@ func sendGauge(metrics handlers.Metrics, url string) error {
 }
 
 func sendCounter(metrics handlers.Metrics, url string) error {
-	f, err := strconv.ParseFloat(fmt.Sprintf("%v", pollCount), 64)
-	if err != nil {
-		return err
-	}
-	metrics.Value = &f
+	metrics.Delta = &pollCount
 	b, err := json.Marshal(metrics)
 	if err != nil {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)

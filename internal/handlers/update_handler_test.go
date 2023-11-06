@@ -22,6 +22,7 @@ func TestUpdateHandler(t *testing.T) {
 		statusCode  int
 	}
 	f := float64(1)
+	d := int64(1)
 	tests := []struct {
 		name       string
 		want       want
@@ -41,8 +42,7 @@ func TestUpdateHandler(t *testing.T) {
 			metrics: handlers.Metrics{
 				ID:    "test",
 				MType: multistorage.MetricTypeCounter,
-				Delta: nil,
-				Value: &f,
+				Delta: &d,
 			},
 		},
 		{
@@ -57,7 +57,6 @@ func TestUpdateHandler(t *testing.T) {
 			metrics: handlers.Metrics{
 				ID:    "test",
 				MType: multistorage.MetricTypeGauge,
-				Delta: nil,
 				Value: &f,
 			},
 		},

@@ -87,7 +87,7 @@ func store(t *testing.T, metricName string, v float64, storage *mem.Storage) {
 	val1Str := fmt.Sprintf("%v", v)
 	err := Validate(val1Str)
 	require.NoError(t, err)
-	err = Store(storage, metricName, val1Str)
+	_, err = Store(storage, metricName, val1Str)
 	require.NoError(t, err)
 }
 

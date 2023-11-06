@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/multistorage"
 )
@@ -33,16 +34,43 @@ func (s ServiceHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Requ
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	if metrics.Value == nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+
+	var metricValue string
+	if metrics.MType == multistorage.MetricTypeGauge {
+		if metrics.Value == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		metricValue = fmt.Sprintf("%v", *metrics.Value)
+	} else if metrics.MType == multistorage.MetricTypeCounter {
+		if metrics.Delta == nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		metricValue = strconv.FormatInt(*metrics.Delta, 10)
 	}
 
-	v := fmt.Sprintf("%v", *metrics.Value)
-	err = multistorage.SaveMetric(s.storage, metrics.ID, metrics.MType, v)
+	newVal, err := multistorage.SaveMetric(s.storage, metrics.ID, metrics.MType, metricValue)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	if metrics.MType == multistorage.MetricTypeGauge {
+		v, err := strconv.ParseFloat(newVal, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		metrics.Value = &v
+	} else if metrics.MType == multistorage.MetricTypeCounter {
+		v, err := strconv.ParseInt(newVal, 10, 64)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		metrics.Delta = &v
+	}
+
 	w.WriteHeader(http.StatusOK)
 }

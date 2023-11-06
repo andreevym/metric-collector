@@ -47,31 +47,32 @@ const (
 	MetricTypeCounter string = "counter"
 )
 
-func SaveMetric(storage *Storage, metricName string, metricType string, metricValue string) error {
+func SaveMetric(storage *Storage, metricName string, metricType string, metricValue string) (string, error) {
+	var newVal string
 	switch metricType {
 	case MetricTypeCounter:
 		err := counter.Validate(metricValue)
 		if err != nil {
-			return err
+			return "", err
 		}
-		err = counter.Store(storage.CounterStorage(), metricName, metricValue)
+		newVal, err = counter.Store(storage.CounterStorage(), metricName, metricValue)
 		if err != nil {
-			return err
+			return "", err
 		}
 	case MetricTypeGauge:
 		err := gauge.Validate(metricValue)
 		if err != nil {
-			return err
+			return "", err
 		}
-		err = gauge.Store(storage.GaugeStorage(), metricName, metricValue)
+		newVal, err = gauge.Store(storage.GaugeStorage(), metricName, metricValue)
 		if err != nil {
-			return err
+			return "", err
 		}
 	default:
-		return errors.New("metric type not found")
+		return "", errors.New("metric type not found")
 	}
 
-	return nil
+	return newVal, nil
 }
 
 func GetMetric(storage *Storage, metricType string, metricName string) (string, error) {

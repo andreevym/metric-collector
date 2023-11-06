@@ -27,18 +27,30 @@ func (s ServiceHandlers) ValueMetricByTypeAndNameHandler(w http.ResponseWriter, 
 		w.WriteHeader(http.StatusNotFound)
 		return
 	} else {
-		v, err := strconv.ParseFloat(valStr, 64)
-		if err != nil {
+		resMetrics := Metrics{
+			ID:    metrics.ID,
+			MType: metrics.MType,
+		}
+		if resMetrics.MType == multistorage.MetricTypeGauge {
+			v, err := strconv.ParseFloat(valStr, 64)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			resMetrics.Value = &v
+		} else if resMetrics.MType == multistorage.MetricTypeCounter {
+			v, err := strconv.ParseInt(valStr, 10, 64)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			resMetrics.Delta = &v
+		} else {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		metrics := Metrics{
-			ID:    metrics.ID,
-			MType: metrics.MType,
-			Delta: nil,
-			Value: &v,
-		}
-		bytes, err := json.Marshal(metrics)
+
+		bytes, err := json.Marshal(resMetrics)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return

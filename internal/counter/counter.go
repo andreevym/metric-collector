@@ -9,25 +9,33 @@ import (
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
 
-func Store(s repository.Storage, metricName string, metricValue string) error {
+func Store(s repository.Storage, metricName string, metricValue string) (string, error) {
 	metricValues, err := s.Read(metricName)
 	if err != nil && !errors.Is(err, mem.ErrValueNotFound) {
-		return err
+		return "", err
 	}
 	if len(metricValues) == 0 {
-		return s.Create(metricName, metricValue)
+		err := s.Create(metricName, metricValue)
+		if err != nil {
+			return "", err
+		}
+		return metricValue, nil
 	}
 
-	existsMetricVal, err := strconv.ParseFloat(metricValues[0], 64)
+	existsMetricVal, err := strconv.ParseInt(metricValues[0], 10, 64)
 	if err != nil {
-		return err
+		return "", err
 	}
-	v, err := strconv.ParseFloat(metricValue, 64)
+	v, err := strconv.ParseInt(metricValue, 10, 64)
 	if err != nil {
-		return err
+		return "", err
 	}
-	newVal := fmt.Sprintf("%v", existsMetricVal+v)
-	return s.Update(metricName, []string{newVal})
+	newVal := strconv.FormatInt(existsMetricVal+v, 10)
+	err = s.Update(metricName, []string{newVal})
+	if err != nil {
+		return "", err
+	}
+	return newVal, err
 }
 
 func Validate(metricValue string) error {
