@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/multistorage"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 const (

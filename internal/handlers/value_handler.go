@@ -7,7 +7,7 @@ import (
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/multistorage"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 // ValueMetricByTypeAndNameHandler method return metric value by metric type and metric name

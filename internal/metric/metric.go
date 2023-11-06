@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -12,6 +13,8 @@ import (
 
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/multistorage"
+	"github.com/avast/retry-go"
+	"go.uber.org/zap"
 )
 
 const (
@@ -73,24 +76,7 @@ func pollLastMemStatByTicker(ticker *time.Ticker) {
 
 func sendGauge(metrics handlers.Metrics, url string) error {
 	metrics.Delta = nil
-	b, err := json.Marshal(metrics)
-	if err != nil {
-		fmt.Printf("failed to send metric: matshal request body: %v", err)
-		return err
-	}
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/update", url), bytes.NewBuffer(b))
-	if err != nil {
-		fmt.Printf("failed to create new request: %v\n", err)
-		return err
-	}
-	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	err = retry(req, defaultRetryCount, defaultRetryWait)
-	if err != nil {
-		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
-		return err
-	}
-
-	return nil
+	return sendUpdateMetricsRequest(url, metrics)
 }
 
 func sendPollCount(url string) error {
@@ -100,38 +86,34 @@ func sendPollCount(url string) error {
 		Delta: &pollCount,
 		Value: nil,
 	}
+	return sendUpdateMetricsRequest(url, metrics)
+}
+
+func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 	b, err := json.Marshal(metrics)
 	if err != nil {
 		fmt.Printf("failed to send metric: matshal request body: %v", err)
 		return err
 	}
-	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/update", url), bytes.NewBuffer(b))
+	var resp *http.Response
+	err = retry.Do(
+		func() error {
+			var err error
+			resp, err = http.Post(fmt.Sprintf("%s/update", url), handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+			return err
+		},
+		retry.Attempts(defaultRetryCount),
+		retry.OnRetry(func(n uint, err error) {
+			log.Printf("Retrying request after error: %v", err)
+		}),
+	)
 	if err != nil {
-		fmt.Printf("failed to create new request: %v\n", err)
+		zap.Error(err)
 		return err
 	}
-	req.Header.Set("Content-Type", handlers.UpdateMetricContentType)
-	err = retry(req, defaultRetryCount, defaultRetryWait)
-	if err != nil {
-		fmt.Printf("failed to send request with retry: %s, %s, %v", req.RequestURI, string(b), err)
-		return err
-	}
+	defer resp.Body.Close()
 
 	return nil
-}
-
-func retry(request *http.Request, count int, d time.Duration) error {
-	var err error
-	var resp *http.Response
-	for i := 0; i < count; i++ {
-		resp, err = http.DefaultClient.Do(request)
-		if err == nil && resp.StatusCode == http.StatusOK && resp.Body.Close() == nil {
-			return nil
-		}
-		time.Sleep(d)
-	}
-
-	return err
 }
 
 func collectMetricsByMemStat(stats *runtime.MemStats) ([]handlers.Metrics, error) {
