@@ -26,7 +26,7 @@ func GzipMiddleware(h http.Handler) http.Handler {
 			defer func() {
 				err := cw.Close()
 				if err != nil {
-					logger.Log.Fatal(err.Error())
+					logger.Log.Error(err.Error())
 				}
 			}()
 		}
@@ -38,14 +38,15 @@ func GzipMiddleware(h http.Handler) http.Handler {
 			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := compressor.NewCompressReader(r.Body)
 			if err != nil {
-				logger.Log.Fatal(err.Error())
+				logger.Log.Error(err.Error())
+				return
 			}
 			// меняем тело запроса на новое
 			r.Body = cr
 			defer func() {
 				err = cr.Close()
 				if err != nil {
-					logger.Log.Fatal(err.Error())
+					logger.Log.Error(err.Error())
 				}
 			}()
 		}

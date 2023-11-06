@@ -24,6 +24,6 @@ func main() {
 
 	err = server.Start(cfg.Address)
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Fatal(err.Error())
 	}
 }

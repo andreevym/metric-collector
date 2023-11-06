@@ -33,7 +33,7 @@ func RequestLogger(h http.Handler) http.Handler {
 		defer func() {
 			err := r.Body.Close()
 			if err != nil {
-				logger.Log.Fatal(err.Error())
+				logger.Log.Error(err.Error())
 			}
 		}()
 		bytes, _ := io.ReadAll(r.Body)

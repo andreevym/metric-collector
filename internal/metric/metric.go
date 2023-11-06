@@ -71,7 +71,7 @@ func pollLastMemStatByTicker(ticker *time.Ticker) {
 		memStats := runtime.MemStats{}
 		runtime.ReadMemStats(&memStats)
 		lastMemStats = &memStats
-		logger.Log.Info("+ metric\n", zap.Time("ticker", a))
+		logger.Log.Info("+ metric\n", zap.Int64("pollCount", pollCount), zap.String("ticker", a.String()))
 	}
 }
 
