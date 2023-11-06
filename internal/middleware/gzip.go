@@ -37,6 +37,7 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		if isReqGzip {
 			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
 			cr, err := compressor.NewCompressReader(r.Body)
+			defer r.Body.Close()
 			if err != nil {
 				logger.Log.Error(err.Error())
 				return

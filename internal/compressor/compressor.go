@@ -3,8 +3,8 @@ package compressor
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 )
 
@@ -34,9 +34,9 @@ func (c *CompressWriter) Write(p []byte) (int, error) {
 }
 
 func (c *CompressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
-		c.w.Header().Set("Content-Encoding", ContentEncoding)
-	}
+	//if statusCode < 300 {
+	//	c.w.Header().Set("Content-Encoding", ContentEncoding)
+	//}
 	c.w.WriteHeader(statusCode)
 }
 
@@ -77,14 +77,28 @@ func (c *CompressReader) Close() error {
 
 func Compress(data []byte) ([]byte, error) {
 	var b bytes.Buffer
-	w := gzip.NewWriter(&b)
-	_, err := w.Write(data)
-	if err != nil {
-		return nil, fmt.Errorf("failed write data to compress temporary buffer: %v", err)
+	gz := gzip.NewWriter(&b)
+	defer gz.Close() //NOT SUFFICIENT, DON'T DEFER WRITER OBJECTS
+	if _, err := gz.Write(data); err != nil {
+		return nil, err
 	}
-	err = w.Close()
-	if err != nil {
-		return nil, fmt.Errorf("failed compress data: %v", err)
+	// NEED TO CLOSE EXPLICITLY
+	if err := gz.Close(); err != nil {
+		return nil, err
 	}
-	return b.Bytes(), nil
+	compressedData := b.Bytes()
+	return compressedData, nil
+}
+
+func Decompress(compressedData []byte) ([]byte, error) {
+	r, err := gzip.NewReader(bytes.NewReader(compressedData))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	res, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }

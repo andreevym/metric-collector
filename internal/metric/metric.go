@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"math/rand"
 	"net/http"
@@ -110,6 +111,7 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 			)
 			request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 			request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
+			request.Header.Set("Content-Encoding", compressor.ContentEncoding)
 			resp, err := http.DefaultClient.Do(request)
 			if err != nil {
 				logger.Log.Error(
@@ -120,6 +122,20 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 				return err
 			}
 			if resp != nil {
+				bytes, err := io.ReadAll(resp.Body)
+				if err != nil {
+					logger.Log.Error("error read response body",
+						zap.String("request.uri", request.RequestURI),
+						zap.String("request.body", string(b)),
+					)
+					return err
+				}
+				logger.Log.Debug("read response body",
+					zap.String("request.uri", request.RequestURI),
+					zap.String("request.body", string(b)),
+					zap.String("response.status", resp.Status),
+					zap.String("response.decompressed_body", string(bytes)),
+				)
 				err = resp.Body.Close()
 				if err != nil {
 					return err
