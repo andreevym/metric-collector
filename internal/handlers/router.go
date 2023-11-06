@@ -8,9 +8,11 @@ import (
 
 func NewRouter(s *ServiceHandlers) http.Handler {
 	r := chi.NewRouter()
-	r.Post("/update/", s.UpdateMetricHandler)
+	//r.Post("/update/{metricType}/{metricName}/{metricValue}", s.UpdateJSONMetricHandler)
+	//r.Post("/value/{metricType}/{metricName}", s.ValueMetricByTypeAndNameHandler)
 	r.Post("/update", s.UpdateMetricHandler)
-	r.Post("/value/", s.ValueMetricByTypeAndNameHandler)
+	r.Post("/update/", s.UpdateMetricHandler)
 	r.Post("/value", s.ValueMetricByTypeAndNameHandler)
+	r.Post("/value/", s.ValueMetricByTypeAndNameHandler)
 	return r
 }

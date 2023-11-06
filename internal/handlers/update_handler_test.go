@@ -35,7 +35,7 @@ func TestUpdateHandler(t *testing.T) {
 			want: want{
 				contentType: handlers.UpdateMetricContentType,
 				statusCode:  http.StatusOK,
-				resp:        "",
+				resp:        "{\"id\":\"test\",\"type\":\"counter\",\"delta\":1}",
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,
@@ -50,7 +50,7 @@ func TestUpdateHandler(t *testing.T) {
 			want: want{
 				contentType: handlers.UpdateMetricContentType,
 				statusCode:  http.StatusOK,
-				resp:        "",
+				resp:        "{\"id\":\"test\",\"type\":\"gauge\",\"value\":1}",
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,

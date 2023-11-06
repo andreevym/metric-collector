@@ -39,7 +39,7 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
-		assert.Equal(t, "", get)
+		assert.Equal(t, string(bytes), get)
 		val2 := rand.Float64()
 		bytes, err = json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
@@ -50,7 +50,7 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
-		assert.Equal(t, "", get)
+		assert.Equal(t, string(bytes), get)
 		bytes, err = json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
 			MType: multistorage.MetricTypeGauge,
@@ -91,7 +91,7 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
 		require.Equal(t, http.StatusOK, statusCode)
 		require.Equal(t, handlers.UpdateMetricContentType, contentType)
-		require.Equal(t, "", get)
+		require.Equal(t, string(bytes), get)
 		val2 := rand.Int63()
 		bytes, err = json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
@@ -99,10 +99,19 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 			Delta: &val2,
 		})
 		require.NoError(t, err)
+
+		res := val1 + val2
+		resBytes, err := json.Marshal(handlers.Metrics{
+			ID:    strconv.Itoa(key),
+			MType: multistorage.MetricTypeCounter,
+			Delta: &res,
+		})
+		require.NoError(t, err)
+
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
 		require.Equal(t, http.StatusOK, statusCode)
 		require.Equal(t, handlers.UpdateMetricContentType, contentType)
-		require.Equal(t, "", get)
+		require.Equal(t, string(resBytes), get)
 		bytes, err = json.Marshal(handlers.Metrics{
 			ID:    strconv.Itoa(key),
 			MType: multistorage.MetricTypeCounter,
@@ -111,13 +120,6 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes2.NewBuffer(bytes))
 		require.Equal(t, http.StatusOK, statusCode)
 		require.Equal(t, handlers.ValueMetricContentType, contentType)
-		res := val1 + val2
-		bytes, err = json.Marshal(handlers.Metrics{
-			ID:    strconv.Itoa(key),
-			MType: multistorage.MetricTypeCounter,
-			Delta: &res,
-		})
-		require.NoError(t, err)
-		require.JSONEq(t, string(bytes), get)
+		require.JSONEq(t, string(resBytes), get)
 	}
 }
