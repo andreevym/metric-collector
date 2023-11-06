@@ -55,6 +55,7 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 			ID:    strconv.Itoa(key),
 			MType: multistorage.MetricTypeGauge,
 		})
+		require.NoError(t, err)
 		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes2.NewBuffer(bytes))
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, handlers.ValueMetricContentType, contentType)
