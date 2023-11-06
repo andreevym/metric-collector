@@ -13,13 +13,14 @@ import (
 
 	"github.com/andreevym/metric-collector/internal/compressor"
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
 )
 
 const (
-	defaultRetryCount = 30
+	defaultRetryCount = 100
 )
 
 var (
@@ -46,18 +47,18 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 		url := fmt.Sprintf("http://%s", address)
 		stats, err := collectMetricsByMemStat(lastMemStats)
 		if err != nil {
-			fmt.Printf("failed to collect metrics by mem stat: %v", err)
+			logger.Log.Error("failed to collect metrics by mem stat", zap.Error(err))
 			break
 		}
 		err = sendPollCount(url)
 		if err != nil {
-			fmt.Printf("failed to send counter request to server: %v", err)
+			logger.Log.Error("failed to send counter request to server", zap.Error(err))
 			break
 		}
 		for _, metrics := range stats {
 			err = sendGauge(metrics, url)
 			if err != nil {
-				fmt.Printf("failed to send gauge request to server: %v", err)
+				logger.Log.Error("failed to send gauge request to server", zap.Error(err))
 				break
 			}
 		}
@@ -70,7 +71,7 @@ func pollLastMemStatByTicker(ticker *time.Ticker) {
 		memStats := runtime.MemStats{}
 		runtime.ReadMemStats(&memStats)
 		lastMemStats = &memStats
-		fmt.Printf("+ metric %s\n", a.String())
+		logger.Log.Info("+ metric\n", zap.Time("ticker", a))
 	}
 }
 
@@ -92,13 +93,14 @@ func sendPollCount(url string) error {
 func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 	b, err := json.Marshal(metrics)
 	if err != nil {
-		fmt.Printf("failed to send metric: matshal request body: %v", err)
+		logger.Log.Error("failed to send metric: matshal request body", zap.Error(err))
 		return err
 	}
 	err = retry.Do(
 		func() error {
 			compressedBytes, err := compressor.Compress(b)
 			if err != nil {
+				logger.Log.Error("failed to compress", zap.String("metric_json", string(b)), zap.Error(err))
 				return err
 			}
 			request, err := http.NewRequest(
@@ -106,10 +108,15 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 				fmt.Sprintf("%s/update", url),
 				bytes.NewBuffer(compressedBytes),
 			)
-			request.Header.Add("Content-Type", handlers.UpdateMetricContentType)
-			request.Header.Add("Content-Encoding", compressor.ContentEncoding)
+			request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
+			request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
 			resp, err := http.DefaultClient.Do(request)
 			if err != nil {
+				logger.Log.Error(
+					"send request error",
+					zap.String("url", url),
+					zap.Error(err),
+				)
 				return err
 			}
 			if resp != nil {
@@ -121,12 +128,16 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 			return nil
 		},
 		retry.Attempts(defaultRetryCount),
+		retry.Delay(500*time.Millisecond),
 		retry.OnRetry(func(n uint, err error) {
 			log.Printf("Retrying request after error: %v", err)
 		}),
 	)
 	if err != nil {
-		zap.Error(err)
+		logger.Log.Error(
+			"retry error",
+			zap.Error(err),
+		)
 		return err
 	}
 

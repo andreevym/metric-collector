@@ -9,6 +9,7 @@ import (
 )
 
 const ContentEncoding = "gzip"
+const AcceptEncoding = "gzip"
 
 // CompressWriter реализует интерфейс http.ResponseWriter и позволяет прозрачно для сервера
 // сжимать передаваемые данные и выставлять правильные HTTP-заголовки
@@ -34,7 +35,7 @@ func (c *CompressWriter) Write(p []byte) (int, error) {
 
 func (c *CompressWriter) WriteHeader(statusCode int) {
 	if statusCode < 300 {
-		c.w.Header().Set("Content-Encoding", "gzip")
+		c.w.Header().Set("Content-Encoding", ContentEncoding)
 	}
 	c.w.WriteHeader(statusCode)
 }

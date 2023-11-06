@@ -67,7 +67,7 @@ func (s ServiceHandlers) ValueMetricByTypeAndNameHandler(w http.ResponseWriter, 
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	_, err = io.WriteString(w, string(bytes))
+	_, err = w.Write(bytes)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
