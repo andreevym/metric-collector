@@ -96,13 +96,8 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 	}
 	err = retry.Do(
 		func() error {
-			resp, err := http.Post(fmt.Sprintf("%s/update", url), handlers.UpdateMetricContentType, bytes.NewBuffer(b))
-			err = resp.Body.Close()
-			if err != nil {
-				zap.Error(err)
-				return err
-			}
-			return nil
+			_, err = http.Post(fmt.Sprintf("%s/update", url), handlers.UpdateMetricContentType, bytes.NewBuffer(b))
+			return err
 		},
 		retry.Attempts(defaultRetryCount),
 		retry.OnRetry(func(n uint, err error) {
