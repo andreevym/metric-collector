@@ -42,14 +42,14 @@ func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Stora
 		cfg:            cfg,
 	}
 
-	if cfg.FileStoragePath != "" {
+	if cfg != nil && cfg.FileStoragePath != "" {
 		if ok, _ := isDirectory(cfg.FileStoragePath); ok {
 			return nil, fmt.Errorf("storage path need to be directory %s", cfg.FileStoragePath)
 		}
 		s.counterBackupPath = cfg.FileStoragePath + "/counter.backup"
 		s.gaugeBackupPath = cfg.FileStoragePath + "/gauge.backup"
 	}
-	if cfg.Restore {
+	if cfg != nil && cfg.Restore {
 		err := s.Restore()
 		if err != nil {
 			panic(err)
@@ -113,7 +113,7 @@ func SaveMetric(storage *Storage, metricName string, metricType string, metricVa
 		if err != nil {
 			return "", err
 		}
-		if storage.counterBackupPath != "" && storage.cfg.StoreInterval > 0 {
+		if storage.cfg != nil && storage.counterBackupPath != "" && storage.cfg.StoreInterval > 0 {
 			time.AfterFunc(storage.cfg.StoreInterval, func() {
 				err = backup.Save(storage.counterBackupPath, storage.CounterStorage().Data())
 				if err != nil {
@@ -130,7 +130,7 @@ func SaveMetric(storage *Storage, metricName string, metricType string, metricVa
 		if err != nil {
 			return "", err
 		}
-		if storage.gaugeBackupPath != "" && storage.cfg.StoreInterval > 0 {
+		if storage.cfg != nil && storage.gaugeBackupPath != "" && storage.cfg.StoreInterval > 0 {
 			time.AfterFunc(storage.cfg.StoreInterval, func() {
 				err = backup.Save(storage.gaugeBackupPath, storage.GaugeStorage().Data())
 				if err != nil {

@@ -14,8 +14,6 @@ func TestEndToEndBackup(t *testing.T) {
 		err = os.RemoveAll(f.Name())
 		require.NoError(t, err)
 	}()
-	service, err := NewService(f.Name())
-	require.NoError(t, err)
 
 	data := make(map[string][]string)
 	for i := 0; i < 1000; i++ {
@@ -23,10 +21,10 @@ func TestEndToEndBackup(t *testing.T) {
 		data[formatInt] = []string{formatInt}
 	}
 
-	err = service.Save(data)
+	err = Save(f.Name(), data)
 	require.NoError(t, err)
 
-	loadedData, err := service.Load()
+	loadedData, err := Load(f.Name())
 	require.NoError(t, err)
 
 	require.Equal(t, len(loadedData), len(data))
