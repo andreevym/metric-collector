@@ -22,7 +22,7 @@ func main() {
 		log.Fatal("logger can't be init", cfg.LogLevel, err)
 	}
 
-	err = server.Start(cfg.Address)
+	err = server.Start(cfg)
 	if err != nil {
 		logger.Log.Fatal(err.Error())
 	}

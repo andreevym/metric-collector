@@ -31,7 +31,7 @@ func TestStorage_Create(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := Storage{
-				m: tt.fields.m,
+				data: tt.fields.m,
 			}
 			if err := s.Create(tt.args.key, tt.args.val); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
@@ -82,7 +82,7 @@ func TestStorage_Update(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := Storage{
-				m: tt.fields.m,
+				data: tt.fields.m,
 			}
 			if err := s.Update(tt.args.key, tt.args.val); (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)

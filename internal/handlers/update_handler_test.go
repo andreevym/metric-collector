@@ -85,7 +85,7 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			counterMemStorage := mem.NewStorage()
 			gaugeMemStorage := mem.NewStorage()
-			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, nil)
 			require.NoError(t, err)
 			serviceHandlers := handlers.NewServiceHandlers(store)
 			router := handlers.NewRouter(serviceHandlers)

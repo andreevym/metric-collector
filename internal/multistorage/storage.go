@@ -2,22 +2,30 @@ package multistorage
 
 import (
 	"errors"
+	"os"
 	"reflect"
-
-	"github.com/andreevym/metric-collector/internal/counter"
-	"github.com/andreevym/metric-collector/internal/gauge"
-	"github.com/andreevym/metric-collector/internal/repository"
+	"time"
 
 	"fmt"
+
+	"github.com/andreevym/metric-collector/internal/backup"
+	"github.com/andreevym/metric-collector/internal/config/serverconfig"
+	"github.com/andreevym/metric-collector/internal/counter"
+	"github.com/andreevym/metric-collector/internal/gauge"
+	"github.com/andreevym/metric-collector/internal/logger"
+	"github.com/andreevym/metric-collector/internal/repository"
+	"go.uber.org/zap"
 )
 
 type Storage struct {
-	counterStorage repository.Storage
-	gaugeStorage   repository.Storage
+	counterStorage    repository.Storage
+	gaugeStorage      repository.Storage
+	counterBackupPath string
+	gaugeBackupPath   string
+	cfg               *serverconfig.ServerConfig
 }
 
-func NewStorage(counterStorage repository.Storage,
-	gaugeStorage repository.Storage) (*Storage, error) {
+func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Storage, cfg *serverconfig.ServerConfig) (*Storage, error) {
 	if counterStorage == nil ||
 		(reflect.ValueOf(counterStorage).Kind() == reflect.Ptr && reflect.ValueOf(counterStorage).IsNil()) {
 		return nil, errors.New("counter storage can't be nil")
@@ -28,10 +36,26 @@ func NewStorage(counterStorage repository.Storage,
 		return nil, errors.New("gauge storage can't be nil")
 	}
 
-	return &Storage{
+	s := &Storage{
 		counterStorage: counterStorage,
 		gaugeStorage:   gaugeStorage,
-	}, nil
+		cfg:            cfg,
+	}
+
+	if cfg.FileStoragePath != "" {
+		if ok, _ := isDirectory(cfg.FileStoragePath); ok {
+			return nil, fmt.Errorf("storage path need to be directory %s", cfg.FileStoragePath)
+		}
+		s.counterBackupPath = cfg.FileStoragePath + "/counter.backup"
+		s.gaugeBackupPath = cfg.FileStoragePath + "/gauge.backup"
+	}
+	if cfg.Restore {
+		err := s.Restore()
+		if err != nil {
+			panic(err)
+		}
+	}
+	return s, nil
 }
 
 func (s Storage) GaugeStorage() repository.Storage {
@@ -40,6 +64,36 @@ func (s Storage) GaugeStorage() repository.Storage {
 
 func (s Storage) CounterStorage() repository.Storage {
 	return s.counterStorage
+}
+
+func isDirectory(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	return fileInfo.IsDir(), err
+}
+
+func (s Storage) Restore() error {
+	if s.counterBackupPath == "" {
+		return errors.New("storage counterBackupPath path can't be empty")
+	}
+	if s.gaugeBackupPath == "" {
+		return errors.New("storage gaugeBackupPath path can't be empty")
+	}
+
+	data, err := backup.Load(s.counterBackupPath)
+	s.counterStorage.UpdateData(data)
+	if err != nil {
+		return err
+	}
+	data, err = backup.Load(s.gaugeBackupPath)
+	s.gaugeStorage.UpdateData(data)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 const (
@@ -59,6 +113,14 @@ func SaveMetric(storage *Storage, metricName string, metricType string, metricVa
 		if err != nil {
 			return "", err
 		}
+		if storage.counterBackupPath != "" && storage.cfg.StoreInterval > 0 {
+			time.AfterFunc(storage.cfg.StoreInterval, func() {
+				err = backup.Save(storage.counterBackupPath, storage.CounterStorage().Data())
+				if err != nil {
+					logger.Log.Error("problem to save backup ", zap.Error(err))
+				}
+			})
+		}
 	case MetricTypeGauge:
 		err := gauge.Validate(metricValue)
 		if err != nil {
@@ -67,6 +129,14 @@ func SaveMetric(storage *Storage, metricName string, metricType string, metricVa
 		newVal, err = gauge.Store(storage.GaugeStorage(), metricName, metricValue)
 		if err != nil {
 			return "", err
+		}
+		if storage.gaugeBackupPath != "" && storage.cfg.StoreInterval > 0 {
+			time.AfterFunc(storage.cfg.StoreInterval, func() {
+				err = backup.Save(storage.gaugeBackupPath, storage.GaugeStorage().Data())
+				if err != nil {
+					logger.Log.Error("problem to save backup ", zap.Error(err))
+				}
+			})
 		}
 	default:
 		return "", errors.New("metric type not found")

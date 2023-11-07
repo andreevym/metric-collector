@@ -27,7 +27,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 	err = gaugeMemStorage.Create("B", "0.2")
 	assert.NoError(t, err)
 
-	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, nil)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store)
 	router := NewRouter(serviceHandlers)
@@ -132,7 +132,7 @@ func TestGzipCompressionValue(t *testing.T) {
 	err = gaugeMemStorage.Create("B", "0.2")
 	assert.NoError(t, err)
 
-	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, nil)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store)
 	router := NewRouter(serviceHandlers)
