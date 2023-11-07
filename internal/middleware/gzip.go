@@ -17,7 +17,9 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		// проверяем, что клиент умеет получать от сервера сжатые данные в формате gzip
 		acceptEncoding := r.Header.Get("Accept-Encoding")
 		isRespGzip := strings.Contains(acceptEncoding, compressor.AcceptEncoding)
-		if isRespGzip {
+		contentEncoding := r.Header.Get("Content-Encoding")
+		isReqGzip := strings.Contains(contentEncoding, compressor.ContentEncoding)
+		if isRespGzip && isReqGzip {
 			// оборачиваем оригинальный http.ResponseWriter новым с поддержкой сжатия
 			cw := compressor.NewCompressWriter(w)
 			// меняем оригинальный http.ResponseWriter на новый
@@ -32,8 +34,6 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		}
 
 		// проверяем, что клиент отправил серверу сжатые данные в формате gzip
-		contentEncoding := r.Header.Get("Content-Encoding")
-		isReqGzip := strings.Contains(contentEncoding, compressor.ContentEncoding)
 		if isReqGzip {
 			compressReader, err := compressor.NewCompressReader(r.Body)
 			if err != nil {
