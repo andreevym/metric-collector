@@ -111,8 +111,8 @@ func TestGzipCompression(t *testing.T) {
 		require.NoError(t, err)
 
 		header := http.Header{}
-		//header.Set("Content-Encoding", "gzip")
-		//header.Set("Accept-Encoding", "gzip")
+		header.Set("Content-Encoding", "gzip")
+		header.Set("Accept-Encoding", "gzip")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/update", bytes.NewBuffer(compressed), header)
 
 		decompressed, err := compressor.Decompress([]byte(respBody))
