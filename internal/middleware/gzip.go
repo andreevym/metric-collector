@@ -35,17 +35,16 @@ func GzipMiddleware(h http.Handler) http.Handler {
 		contentEncoding := r.Header.Get("Content-Encoding")
 		isReqGzip := strings.Contains(contentEncoding, compressor.ContentEncoding)
 		if isReqGzip {
-			// оборачиваем тело запроса в io.Reader с поддержкой декомпрессии
-			cr, err := compressor.NewCompressReader(r.Body)
-			defer r.Body.Close()
+			compressReader, err := compressor.NewCompressReader(r.Body)
 			if err != nil {
 				logger.Log.Error(err.Error())
 				return
 			}
-			// меняем тело запроса на новое
-			r.Body = cr
+
+			r.Body = compressReader
+
 			defer func() {
-				err = cr.Close()
+				err := r.Body.Close()
 				if err != nil {
 					logger.Log.Error(err.Error())
 				}

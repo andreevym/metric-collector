@@ -10,9 +10,9 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// ValueMetricByTypeAndNameHandler method return metric value by metric type and metric name
+// PostValueHandler method return metric value by metric type and metric name
 // example request url: http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
-func (s ServiceHandlers) ValueMetricByTypeAndNameHandler(w http.ResponseWriter, r *http.Request) {
+func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ValueMetricContentType)
 
 	bytes, _ := io.ReadAll(r.Body)
@@ -62,12 +62,12 @@ func (s ServiceHandlers) ValueMetricByTypeAndNameHandler(w http.ResponseWriter, 
 		return
 	}
 
-	bytes, err = json.Marshal(resMetrics)
+	resBytes, err := json.Marshal(resMetrics)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	_, err = w.Write(bytes)
+	_, err = w.Write(resBytes)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

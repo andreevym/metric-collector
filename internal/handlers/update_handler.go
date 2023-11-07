@@ -23,9 +23,9 @@ type Metrics struct {
 	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
 }
 
-// UpdateMetricHandler method for insert or update metrics
+// PostUpdateHandler method for insert or update metrics
 // example request url: http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
-func (s ServiceHandlers) UpdateMetricHandler(w http.ResponseWriter, r *http.Request) {
+func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", UpdateMetricContentType)
 
 	bytes, _ := io.ReadAll(r.Body)
