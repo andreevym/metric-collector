@@ -18,9 +18,9 @@ import (
 
 // ...
 
-func TestGzipCompression(t *testing.T) {
+func TestGzipCompressionUpdate(t *testing.T) {
 	counterMemStorage := mem.NewStorage()
-	err := counterMemStorage.Create("a", "1")
+	err := counterMemStorage.Create("A", "1")
 	assert.NoError(t, err)
 
 	gaugeMemStorage := mem.NewStorage()
@@ -69,11 +69,12 @@ func TestGzipCompression(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		newValueA := int64(3)
 		// ожидаемое содержимое тела ответа при успешном запросе
 		successBody, err := json.Marshal(&Metrics{
 			ID:    "A",
 			MType: "counter",
-			Delta: &valueA,
+			Delta: &newValueA,
 		})
 		require.NoError(t, err)
 
@@ -114,6 +115,107 @@ func TestGzipCompression(t *testing.T) {
 		header.Set("Content-Encoding", "gzip")
 		header.Set("Accept-Encoding", "gzip")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/update", bytes.NewBuffer(compressed), header)
+
+		decompressed, err := compressor.Decompress([]byte(respBody))
+		require.NoError(t, err)
+
+		require.JSONEq(t, string(successBody), string(decompressed))
+	})
+}
+
+func TestGzipCompressionValue(t *testing.T) {
+	counterMemStorage := mem.NewStorage()
+	err := counterMemStorage.Create("A", "1")
+	assert.NoError(t, err)
+
+	gaugeMemStorage := mem.NewStorage()
+	err = gaugeMemStorage.Create("B", "0.2")
+	assert.NoError(t, err)
+
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+	require.NoError(t, err)
+	serviceHandlers := NewServiceHandlers(store)
+	router := NewRouter(serviceHandlers)
+	srv := httptest.NewServer(middleware.GzipMiddleware(router))
+	defer srv.Close()
+
+	t.Run("without_gzip", func(t *testing.T) {
+		requestBody, err := json.Marshal(&Metrics{
+			ID:    "A",
+			MType: "counter",
+		})
+		require.NoError(t, err)
+
+		valueA := int64(1)
+		// ожидаемое содержимое тела ответа при успешном запросе
+		successBody, err := json.Marshal(&Metrics{
+			ID:    "A",
+			MType: "counter",
+			Delta: &valueA,
+		})
+		require.NoError(t, err)
+
+		header := http.Header{}
+		header.Set("Accept-Encoding", "")
+		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/value", bytes.NewBuffer(requestBody), header)
+
+		require.NoError(t, err)
+
+		require.JSONEq(t, string(successBody), respBody)
+	})
+
+	t.Run("sends_gzip", func(t *testing.T) {
+		requestBody, err := json.Marshal(&Metrics{
+			ID:    "A",
+			MType: "counter",
+		})
+		require.NoError(t, err)
+
+		valueA := int64(1)
+		// ожидаемое содержимое тела ответа при успешном запросе
+		successBody, err := json.Marshal(&Metrics{
+			ID:    "A",
+			MType: "counter",
+			Delta: &valueA,
+		})
+		require.NoError(t, err)
+
+		compressed, err := compressor.Compress(requestBody)
+		require.NoError(t, err)
+
+		header := http.Header{}
+		header.Set("Content-Encoding", "gzip")
+		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/value", bytes.NewBuffer(compressed), header)
+
+		decompressed, err := compressor.Decompress([]byte(respBody))
+		require.NoError(t, err)
+
+		require.JSONEq(t, string(successBody), string(decompressed))
+	})
+
+	t.Run("accepts_gzip", func(t *testing.T) {
+		requestBody, err := json.Marshal(&Metrics{
+			ID:    "A",
+			MType: "counter",
+		})
+		require.NoError(t, err)
+
+		valueA := int64(1)
+		// ожидаемое содержимое тела ответа при успешном запросе
+		successBody, err := json.Marshal(&Metrics{
+			ID:    "A",
+			MType: "counter",
+			Delta: &valueA,
+		})
+		require.NoError(t, err)
+
+		compressed, err := compressor.Compress(requestBody)
+		require.NoError(t, err)
+
+		header := http.Header{}
+		header.Set("Content-Encoding", "gzip")
+		header.Set("Accept-Encoding", "gzip")
+		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/value", bytes.NewBuffer(compressed), header)
 
 		decompressed, err := compressor.Decompress([]byte(respBody))
 		require.NoError(t, err)

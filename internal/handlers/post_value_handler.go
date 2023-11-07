@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/multistorage"
-	"github.com/go-chi/chi/v5"
 )
 
 // PostValueHandler method return metric value by metric type and metric name
@@ -15,33 +14,28 @@ import (
 func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ValueMetricContentType)
 
-	bytes, _ := io.ReadAll(r.Body)
-
-	var metricType string
-	var metricName string
-	if len(bytes) > 0 {
-		metrics := Metrics{}
-		err := json.Unmarshal(bytes, &metrics)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		metricType = metrics.MType
-		metricName = metrics.ID
-	} else {
-		metricType = chi.URLParam(r, "metricType")
-		metricName = chi.URLParam(r, "metricName")
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
-	valStr, err := multistorage.GetMetric(s.storage, metricType, metricName)
+	metrics := Metrics{}
+	err = json.Unmarshal(bytes, &metrics)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	valStr, err := multistorage.GetMetric(s.storage, metrics.MType, metrics.ID)
 	if err != nil || valStr == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
 	resMetrics := Metrics{
-		ID:    metricName,
-		MType: metricType,
+		ID:    metrics.ID,
+		MType: metrics.MType,
 	}
 	if resMetrics.MType == multistorage.MetricTypeGauge {
 		v, err := strconv.ParseFloat(valStr, 64)
