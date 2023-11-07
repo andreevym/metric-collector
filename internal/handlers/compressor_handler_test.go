@@ -41,6 +41,7 @@ func TestGzipCompression(t *testing.T) {
 			MType: "counter",
 			Delta: &valueA,
 		})
+		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
 		successBody, err := json.Marshal(&Metrics{
@@ -66,6 +67,7 @@ func TestGzipCompression(t *testing.T) {
 			MType: "counter",
 			Delta: &valueA,
 		})
+		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
 		successBody, err := json.Marshal(&Metrics{
@@ -95,6 +97,7 @@ func TestGzipCompression(t *testing.T) {
 			MType: "counter",
 			Delta: &valueA,
 		})
+		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
 		successBody, err := json.Marshal(&Metrics{

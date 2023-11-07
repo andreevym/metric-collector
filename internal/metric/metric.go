@@ -109,6 +109,10 @@ func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
 				fmt.Sprintf("%s/update", url),
 				bytes.NewBuffer(compressedBytes),
 			)
+			if err != nil {
+				logger.Log.Error("failed to create new request", zap.String("metric_json", string(b)), zap.Error(err))
+				return err
+			}
 			request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 			request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
 			request.Header.Set("Content-Encoding", compressor.ContentEncoding)
