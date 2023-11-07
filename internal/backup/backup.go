@@ -4,34 +4,41 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+
+	"github.com/andreevym/metric-collector/internal/logger"
 )
 
 func Load(filename string) (map[string][]string, error) {
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
+		logger.Log.Error(err.Error())
 		return nil, fmt.Errorf("can't read backup file %s: %w", filename, err)
 	}
 
 	m, err := marshal(bytes)
 	if err != nil {
+		logger.Log.Error(err.Error())
 		return nil, fmt.Errorf("can't marshal data from backup file %s: %w", filename, err)
 	}
 	return m, err
 }
 
 func Save(filename string, data map[string][]string) error {
-	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {
+		logger.Log.Error(err.Error())
 		return err
 	}
 
 	bytes, err := unmarshal(data)
 	if err != nil {
+		logger.Log.Error(err.Error())
 		return fmt.Errorf("can't unmarshal data for backup %w", err)
 	}
 
 	_, err = file.Write(bytes)
 	if err != nil {
+		logger.Log.Error(err.Error())
 		return fmt.Errorf("can't write file backup %w", err)
 	}
 	return err
@@ -45,6 +52,7 @@ func marshal(data []byte) (map[string][]string, error) {
 	v := file{}
 	err := json.Unmarshal(data, &v)
 	if err != nil {
+		logger.Log.Error(err.Error())
 		return nil, err
 	}
 	return v.Storage, nil
