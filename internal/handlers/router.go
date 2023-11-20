@@ -15,5 +15,8 @@ func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handle
 	r.Post("/update/", s.PostUpdateHandler)
 	r.Post("/value", s.PostValueHandler)
 	r.Post("/value/", s.PostValueHandler)
+	r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
+
+	})
 	return r
 }
