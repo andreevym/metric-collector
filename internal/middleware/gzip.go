@@ -11,10 +11,7 @@ import (
 
 func GzipResponseMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		contentType := r.Header.Get("Content-Type")
-		isCompressedContentType := strings.Contains(contentType, "application/json") ||
-			strings.Contains(contentType, "html/text")
-		if !isCompressedContentType || !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -32,10 +29,7 @@ func GzipResponseMiddleware(next http.Handler) http.Handler {
 
 func GzipRequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		contentType := r.Header.Get("Content-Type")
-		isCompressedContentType := strings.Contains(contentType, "application/json") ||
-			strings.Contains(contentType, "html/text")
-		if !isCompressedContentType || !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
 			return
 		}
