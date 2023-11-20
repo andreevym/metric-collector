@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/compressor"
+	"github.com/andreevym/metric-collector/internal/config/serverconfig"
 	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
@@ -17,6 +18,14 @@ import (
 )
 
 // ...
+
+var emptyServerConfig = &serverconfig.ServerConfig{
+	Address:         "",
+	LogLevel:        "",
+	StoreInterval:   0,
+	FileStoragePath: "",
+	Restore:         false,
+}
 
 func TestGzipCompressionUpdate(t *testing.T) {
 	counterMemStorage := mem.NewStorage()
@@ -27,7 +36,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 	err = gaugeMemStorage.Create("B", "0.2")
 	assert.NoError(t, err)
 
-	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, nil)
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store)
 	router := NewRouter(serviceHandlers)
@@ -83,6 +92,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 
 		header := http.Header{}
 		header.Set("Content-Encoding", "gzip")
+		header.Set("Content-Type", "application/json")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/update", bytes.NewBuffer(compressed), header)
 
 		decompressed, err := compressor.Decompress([]byte(respBody))
@@ -114,6 +124,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 		header := http.Header{}
 		header.Set("Content-Encoding", "gzip")
 		header.Set("Accept-Encoding", "gzip")
+		header.Set("Content-Type", "application/json")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/update", bytes.NewBuffer(compressed), header)
 
 		decompressed, err := compressor.Decompress([]byte(respBody))
@@ -132,7 +143,7 @@ func TestGzipCompressionValue(t *testing.T) {
 	err = gaugeMemStorage.Create("B", "0.2")
 	assert.NoError(t, err)
 
-	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, nil)
+	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store)
 	router := NewRouter(serviceHandlers)
@@ -185,6 +196,7 @@ func TestGzipCompressionValue(t *testing.T) {
 
 		header := http.Header{}
 		header.Set("Content-Encoding", "gzip")
+		header.Set("Content-Type", "application/json")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/value", bytes.NewBuffer(compressed), header)
 
 		decompressed, err := compressor.Decompress([]byte(respBody))
@@ -215,6 +227,7 @@ func TestGzipCompressionValue(t *testing.T) {
 		header := http.Header{}
 		header.Set("Content-Encoding", "gzip")
 		header.Set("Accept-Encoding", "gzip")
+		header.Set("Content-Type", "application/json")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/value", bytes.NewBuffer(compressed), header)
 
 		decompressed, err := compressor.Decompress([]byte(respBody))

@@ -36,6 +36,10 @@ func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Stora
 		return nil, errors.New("gauge storage can't be nil")
 	}
 
+	if cfg == nil {
+		return nil, errors.New("server config can't be nil")
+	}
+
 	s := &Storage{
 		counterStorage: counterStorage,
 		gaugeStorage:   gaugeStorage,
