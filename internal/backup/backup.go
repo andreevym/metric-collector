@@ -19,6 +19,9 @@ func Load(filename string) (map[string][]string, error) {
 		logger.Log.Error(err.Error())
 		return nil, fmt.Errorf("can't read backup file %s: %w", filename, err)
 	}
+	if len(bytes) == 0 {
+		return map[string][]string{}, nil
+	}
 
 	m, err := marshal(bytes)
 	if err != nil {
