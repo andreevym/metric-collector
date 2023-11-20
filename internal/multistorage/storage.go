@@ -2,7 +2,6 @@ package multistorage
 
 import (
 	"errors"
-	"log"
 	"os"
 	"reflect"
 	"time"
@@ -53,15 +52,7 @@ func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Stora
 			panic(err)
 		}
 		s.counterBackupPath = cfg.FileStoragePath + "/counter.backup"
-		_, err = os.Create(s.counterBackupPath)
-		if err != nil {
-			log.Fatalf("create file: %v", err)
-		}
 		s.gaugeBackupPath = cfg.FileStoragePath + "/gauge.backup"
-		_, err = os.Create(s.gaugeBackupPath)
-		if err != nil {
-			log.Fatalf("create file: %v", err)
-		}
 		if ok, _ := isDirectory(cfg.FileStoragePath); !ok {
 			return nil, fmt.Errorf("storage path need to be directory %s", cfg.FileStoragePath)
 		}

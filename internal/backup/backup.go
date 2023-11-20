@@ -28,7 +28,7 @@ func Load(filename string) (map[string][]string, error) {
 		logger.Log.Error(err.Error())
 		return nil, fmt.Errorf("can't marshal data from backup file %s: %w", filename, err)
 	}
-	return m, err
+	return m, nil
 }
 
 func Save(filename string, data map[string][]string) error {
@@ -49,7 +49,7 @@ func Save(filename string, data map[string][]string) error {
 		logger.Log.Error(err.Error())
 		return fmt.Errorf("can't write file backup %w", err)
 	}
-	return err
+	return nil
 }
 
 type file struct {
