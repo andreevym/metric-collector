@@ -48,9 +48,6 @@ func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Stora
 	}
 
 	if cfg != nil && cfg.FileStoragePath != "" {
-		if ok, _ := isDirectory(cfg.FileStoragePath); !ok {
-			return nil, fmt.Errorf("storage path need to be directory %s", cfg.FileStoragePath)
-		}
 		err := os.MkdirAll(cfg.FileStoragePath+"/", 0777)
 		if err != nil {
 			panic(err)
@@ -64,6 +61,9 @@ func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Stora
 		_, err = os.Create(s.gaugeBackupPath)
 		if err != nil {
 			log.Fatalf("create file: %v", err)
+		}
+		if ok, _ := isDirectory(cfg.FileStoragePath); !ok {
+			return nil, fmt.Errorf("storage path need to be directory %s", cfg.FileStoragePath)
 		}
 	}
 	if cfg != nil && cfg.Restore {
