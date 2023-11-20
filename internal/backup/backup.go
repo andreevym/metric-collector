@@ -9,6 +9,11 @@ import (
 )
 
 func Load(filename string) (map[string][]string, error) {
+	_, err := os.Stat(filename)
+	if err != nil {
+		logger.Log.Error(err.Error())
+		return map[string][]string{}, nil
+	}
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
 		logger.Log.Error(err.Error())

@@ -17,8 +17,14 @@ func Start(cfg *serverconfig.ServerConfig) error {
 	if err != nil {
 		return err
 	}
-	serviceHandlers := handlers.NewServiceHandlers(store)
-	router := handlers.NewRouter(serviceHandlers)
 
-	return http.ListenAndServe(cfg.Address, middleware.RequestLogger(middleware.GzipMiddleware(router)))
+	serviceHandlers := handlers.NewServiceHandlers(store)
+	router := handlers.NewRouter(
+		serviceHandlers,
+		middleware.GzipRequestMiddleware,
+		middleware.GzipResponseMiddleware,
+		middleware.RequestLogger,
+	)
+
+	return http.ListenAndServe(cfg.Address, router)
 }

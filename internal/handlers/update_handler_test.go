@@ -46,6 +46,21 @@ func TestUpdateHandler(t *testing.T) {
 			},
 		},
 		{
+			name: "success update counter",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"counter\",\"delta\":1}",
+			},
+			request:    "/update/",
+			httpMethod: http.MethodPost,
+			metrics: &handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeCounter,
+				Delta: &d,
+			},
+		},
+		{
 			name: "success update gauge",
 			want: want{
 				contentType: handlers.UpdateMetricContentType,
@@ -53,6 +68,21 @@ func TestUpdateHandler(t *testing.T) {
 				resp:        "{\"id\":\"test\",\"type\":\"gauge\",\"value\":1}",
 			},
 			request:    "/update",
+			httpMethod: http.MethodPost,
+			metrics: &handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeGauge,
+				Value: &f,
+			},
+		},
+		{
+			name: "success update gauge",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"gauge\",\"value\":1}",
+			},
+			request:    "/update/",
 			httpMethod: http.MethodPost,
 			metrics: &handlers.Metrics{
 				ID:    "test",

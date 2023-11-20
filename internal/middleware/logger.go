@@ -36,7 +36,11 @@ func RequestLogger(h http.Handler) http.Handler {
 				logger.Log.Error(err.Error())
 			}
 		}()
-		bytes, _ := io.ReadAll(r.Body)
+		bytes, err := io.ReadAll(r.Body)
+		if err != nil {
+			logger.Log.Error("read body error", zap.Error(err))
+			return
+		}
 
 		logger.Log.Info(
 			"response",

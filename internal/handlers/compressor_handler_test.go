@@ -39,8 +39,12 @@ func TestGzipCompressionUpdate(t *testing.T) {
 	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store)
-	router := NewRouter(serviceHandlers)
-	srv := httptest.NewServer(middleware.GzipMiddleware(router))
+	router := NewRouter(
+		serviceHandlers,
+		middleware.GzipRequestMiddleware,
+		middleware.GzipResponseMiddleware,
+	)
+	srv := httptest.NewServer(router)
 	defer srv.Close()
 
 	t.Run("without_gzip", func(t *testing.T) {
@@ -63,8 +67,6 @@ func TestGzipCompressionUpdate(t *testing.T) {
 		header := http.Header{}
 		header.Set("Accept-Encoding", "")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/update", bytes.NewBuffer(requestBody), header)
-
-		require.NoError(t, err)
 
 		require.JSONEq(t, string(successBody), respBody)
 	})
@@ -95,10 +97,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 		header.Set("Content-Type", "application/json")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/update", bytes.NewBuffer(compressed), header)
 
-		decompressed, err := compressor.Decompress([]byte(respBody))
-		require.NoError(t, err)
-
-		require.JSONEq(t, string(successBody), string(decompressed))
+		require.JSONEq(t, string(successBody), respBody)
 	})
 
 	t.Run("accepts_gzip", func(t *testing.T) {
@@ -146,8 +145,12 @@ func TestGzipCompressionValue(t *testing.T) {
 	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store)
-	router := NewRouter(serviceHandlers)
-	srv := httptest.NewServer(middleware.GzipMiddleware(router))
+	router := NewRouter(
+		serviceHandlers,
+		middleware.GzipResponseMiddleware,
+		middleware.GzipRequestMiddleware,
+	)
+	srv := httptest.NewServer(router)
 	defer srv.Close()
 
 	t.Run("without_gzip", func(t *testing.T) {
@@ -199,10 +202,7 @@ func TestGzipCompressionValue(t *testing.T) {
 		header.Set("Content-Type", "application/json")
 		_, _, respBody := testCompressRequest(t, srv, http.MethodPost, "/value", bytes.NewBuffer(compressed), header)
 
-		decompressed, err := compressor.Decompress([]byte(respBody))
-		require.NoError(t, err)
-
-		require.JSONEq(t, string(successBody), string(decompressed))
+		require.JSONEq(t, string(successBody), respBody)
 	})
 
 	t.Run("accepts_gzip", func(t *testing.T) {

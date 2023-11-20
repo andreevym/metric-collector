@@ -7,8 +7,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 const (
@@ -28,7 +30,10 @@ type Metrics struct {
 func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", UpdateMetricContentType)
 
-	bytes, _ := io.ReadAll(r.Body)
+	bytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		logger.Log.Error("error", zap.Error(err))
+	}
 
 	var metricName string
 	var metricType string
