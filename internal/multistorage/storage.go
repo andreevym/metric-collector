@@ -92,11 +92,17 @@ func (s Storage) Restore() error {
 	}
 
 	data, err := backup.Load(s.counterBackupPath)
+	if err != nil {
+		return err
+	}
 	s.counterStorage.UpdateData(data)
 	if err != nil {
 		return err
 	}
 	data, err = backup.Load(s.gaugeBackupPath)
+	if err != nil {
+		return err
+	}
 	s.gaugeStorage.UpdateData(data)
 	if err != nil {
 		return err

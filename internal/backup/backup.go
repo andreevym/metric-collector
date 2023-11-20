@@ -32,7 +32,7 @@ func Load(filename string) (map[string][]string, error) {
 }
 
 func Save(filename string, data map[string][]string) error {
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	file, err := os.Create(filename)
 	if err != nil {
 		logger.Log.Error(err.Error())
 		return err
