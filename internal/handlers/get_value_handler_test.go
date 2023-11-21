@@ -163,7 +163,7 @@ func TestGetValueHandler(t *testing.T) {
 			}
 			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 			require.NoError(t, err)
-			serviceHandlers := handlers.NewServiceHandlers(store)
+			serviceHandlers := handlers.NewServiceHandlers(store, nil)
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()

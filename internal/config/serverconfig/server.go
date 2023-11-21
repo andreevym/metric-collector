@@ -17,6 +17,7 @@ type ServerConfig struct {
 	StoreInterval   time.Duration
 	FileStoragePath string
 	Restore         bool
+	DatabaseDsn     string
 }
 
 type ServerEnvConfig struct {
@@ -34,6 +35,9 @@ type ServerEnvConfig struct {
 	// определяющее, загружать или нет ранее сохранённые значения из указанного
 	// файла при старте сервера (по умолчанию true).
 	Restore string `env:"RESTORE"`
+	// DatabaseDsn Строка с адресом подключения к БД должна получаться из переменной окружения DATABASE_DSN
+	// или флага командной строки -d.
+	DatabaseDsn string `env:"DATABASE_DSN"`
 }
 
 var (
@@ -53,14 +57,18 @@ var (
 	// определяющее, загружать или нет ранее сохранённые значения из указанного
 	// файла при старте сервера (по умолчанию true).
 	flagRestore bool
+	// flagDatabaseDsn флаг командной строки -d,
+	// Строка с адресом подключения к БД
+	flagDatabaseDsn string
 )
 
 func Flags() (*ServerConfig, error) {
-	flag.StringVar(&flagRunAddr, "a", ":8080", "address and port to run server")
+	flag.StringVar(&flagRunAddr, "a", ":8081", "address and port to run server")
 	flag.StringVar(&flagLogLevel, "l", "info", "log level")
 	flag.IntVar(&flagStoreInterval, "i", 300, "STORE INTERVAL")
-	flag.StringVar(&flagFileStoragePath, "f", "/tmp/metrics-db.json", "file storage path")
+	flag.StringVar(&flagFileStoragePath, "f", "/tmp/metricserver", "file storage path")
 	flag.BoolVar(&flagRestore, "r", true, "restore")
+	flag.StringVar(&flagDatabaseDsn, "d", "", "postgres connection DATABASE_DSN")
 
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
@@ -85,6 +93,13 @@ func Flags() (*ServerConfig, error) {
 		resultConfig.LogLevel = flagLogLevel
 	} else {
 		resultConfig.LogLevel = config.LogLevel
+	}
+
+	// Логирование, по умолчанию info
+	if config.DatabaseDsn == "" {
+		resultConfig.DatabaseDsn = flagDatabaseDsn
+	} else {
+		resultConfig.DatabaseDsn = config.DatabaseDsn
 	}
 
 	if config.StoreInterval == "" {

@@ -11,6 +11,7 @@ func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handle
 	r.Use(middlewares...)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", s.PostUpdateHandler)
 	r.Get("/value/{metricType}/{metricName}", s.GetValueHandler)
+	r.Get("/ping", s.GetPingHandler)
 	r.Post("/update", s.PostUpdateHandler)
 	r.Post("/update/", s.PostUpdateHandler)
 	r.Post("/value", s.PostValueHandler)

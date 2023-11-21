@@ -7,6 +7,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/multistorage"
+	"github.com/andreevym/metric-collector/internal/pg"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
 
@@ -18,7 +19,9 @@ func Start(cfg *serverconfig.ServerConfig) error {
 		return err
 	}
 
-	serviceHandlers := handlers.NewServiceHandlers(store)
+	dbClient := pg.NewClient(cfg.DatabaseDsn)
+	defer dbClient.Close()
+	serviceHandlers := handlers.NewServiceHandlers(store, dbClient)
 	router := handlers.NewRouter(
 		serviceHandlers,
 		middleware.GzipRequestMiddleware,

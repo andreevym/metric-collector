@@ -38,7 +38,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 
 	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 	require.NoError(t, err)
-	serviceHandlers := NewServiceHandlers(store)
+	serviceHandlers := NewServiceHandlers(store, nil)
 	router := NewRouter(
 		serviceHandlers,
 		middleware.GzipRequestMiddleware,
@@ -144,7 +144,7 @@ func TestGzipCompressionValue(t *testing.T) {
 
 	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 	require.NoError(t, err)
-	serviceHandlers := NewServiceHandlers(store)
+	serviceHandlers := NewServiceHandlers(store, nil)
 	router := NewRouter(
 		serviceHandlers,
 		middleware.GzipResponseMiddleware,
