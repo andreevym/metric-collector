@@ -63,10 +63,10 @@ var (
 )
 
 func Flags() (*ServerConfig, error) {
-	flag.StringVar(&flagRunAddr, "a", ":8081", "address and port to run server")
+	flag.StringVar(&flagRunAddr, "a", ":8080", "address and port to run server")
 	flag.StringVar(&flagLogLevel, "l", "info", "log level")
 	flag.IntVar(&flagStoreInterval, "i", 300, "STORE INTERVAL")
-	flag.StringVar(&flagFileStoragePath, "f", "/tmp/metricserver", "file storage path")
+	flag.StringVar(&flagFileStoragePath, "f", "/tmp/metrics-db.json", "file storage path")
 	flag.BoolVar(&flagRestore, "r", true, "restore")
 	flag.StringVar(&flagDatabaseDsn, "d", "", "postgres connection DATABASE_DSN")
 
