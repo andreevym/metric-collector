@@ -12,19 +12,13 @@ type Client struct {
 	db *sql.DB
 }
 
-func NewClient(databaseDsn string) *Client {
+func NewClient(databaseDsn string) (*Client, error) {
 	db, err := sql.Open("pgx", databaseDsn)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	if err = db.PingContext(ctx); err != nil {
-		panic(err)
-	}
-
-	return &Client{db: db}
+	return &Client{db: db}, nil
 }
 
 func (c *Client) Close() error {

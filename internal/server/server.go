@@ -19,7 +19,10 @@ func Start(cfg *serverconfig.ServerConfig) error {
 		return err
 	}
 
-	dbClient := pg.NewClient(cfg.DatabaseDsn)
+	dbClient, err := pg.NewClient(cfg.DatabaseDsn)
+	if err != nil {
+		return err
+	}
 	defer dbClient.Close()
 	serviceHandlers := handlers.NewServiceHandlers(store, dbClient)
 	router := handlers.NewRouter(
