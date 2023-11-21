@@ -1,10 +1,12 @@
 package handlers_test
 
 import (
+	"bytes"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/andreevym/metric-collector/internal/config/serverconfig"
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
@@ -12,7 +14,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetHandler(t *testing.T) {
+var emptyServerConfig = &serverconfig.ServerConfig{
+	Address:         "",
+	LogLevel:        "",
+	StoreInterval:   0,
+	FileStoragePath: "",
+	Restore:         false,
+}
+
+func TestGetValueHandler(t *testing.T) {
 	type want struct {
 		contentType string
 		resp        string
@@ -151,14 +161,14 @@ func TestGetHandler(t *testing.T) {
 				err := gaugeMemStorage.Update(k, []string{v})
 				assert.NoError(t, err)
 			}
-			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 			require.NoError(t, err)
 			serviceHandlers := handlers.NewServiceHandlers(store)
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
 
-			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request)
+			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, bytes.NewBuffer([]byte{}))
 			assert.Equal(t, test.want.statusCode, statusCode)
 			assert.Equal(t, test.want.contentType, contentType)
 			assert.Equal(t, test.want.resp, get)

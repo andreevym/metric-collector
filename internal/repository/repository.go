@@ -5,4 +5,6 @@ type Storage interface {
 	Read(key string) ([]string, error)
 	Update(key string, val []string) error
 	Delete(key string) error
+	UpdateData(data map[string][]string)
+	Data() map[string][]string
 }

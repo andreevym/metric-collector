@@ -4,19 +4,22 @@ import (
 	"log"
 	"time"
 
-	"github.com/andreevym/metric-collector/internal/config"
+	"github.com/andreevym/metric-collector/internal/config/agentconfig"
+	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/metric"
 )
 
 func main() {
-	config.AgentFlags()
-
-	cfg, err := config.AgentParse()
+	cfg, err := agentconfig.Flags()
 	if err != nil {
 		log.Fatal(err)
 	}
 	if cfg == nil {
 		log.Fatal("agent config can't be nil")
+	}
+	_, err = logger.Logger(cfg.LogLevel)
+	if err != nil {
+		log.Fatal("logger can't be init", cfg.LogLevel, err)
 	}
 
 	pollDuration := time.Duration(cfg.PollInterval) * time.Second

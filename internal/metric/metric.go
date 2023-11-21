@@ -1,19 +1,33 @@
 package metric
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
+	"strconv"
 	"time"
 
+	"github.com/andreevym/metric-collector/internal/compressor"
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/logger"
+	"github.com/andreevym/metric-collector/internal/multistorage"
+	"github.com/avast/retry-go"
+	"go.uber.org/zap"
+)
+
+const (
+	defaultRetryCount = 100
 )
 
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
 	// при каждом обновлении метрики из пакета runtime (на каждый pollInterval — см. ниже).
-	pollCount    int
+	pollCount    int64
 	lastMemStats *runtime.MemStats
 )
 
@@ -30,27 +44,24 @@ func Start(pollDuration time.Duration, reportDuration time.Duration, address str
 
 // sendByTickerAndAddress send metric to server by ticker and address
 func sendByTickerAndAddress(ticker *time.Ticker, address string) {
-	for a := range ticker.C {
-		randomValue := rand.Int()
-		fmt.Printf("- report randomValue: %v", randomValue)
-		fmt.Printf("- report pollCount %v\n", pollCount)
-		fmt.Printf("- report lastMemStats %v\n", lastMemStats)
-		fmt.Printf("- report %s\n", a.String())
+	for range ticker.C {
 		url := fmt.Sprintf("http://%s", address)
-		resp, err := http.Post(url, handlers.UpdateMetricContentType, nil)
+		stats, err := collectMetricsByMemStat(lastMemStats)
 		if err != nil {
-			fmt.Printf("failed to send metric: invalid send http post: %v", err)
+			logger.Log.Error("failed to collect metrics by mem stat", zap.Error(err))
 			break
 		}
-		err = resp.Body.Close()
+		err = sendPollCount(url)
 		if err != nil {
-			fmt.Printf("failed to handle response from server: close resp body: %v", err)
+			logger.Log.Error("failed to send counter request to server", zap.Error(err))
 			break
 		}
-		if resp.StatusCode != http.StatusOK {
-			fmt.Printf("invalid response status. found status code %d but expected %d",
-				resp.StatusCode, http.StatusOK)
-			break
+		for _, metrics := range stats {
+			err = sendGauge(metrics, url)
+			if err != nil {
+				logger.Log.Error("failed to send gauge request to server", zap.Error(err))
+				break
+			}
 		}
 	}
 }
@@ -61,6 +72,401 @@ func pollLastMemStatByTicker(ticker *time.Ticker) {
 		memStats := runtime.MemStats{}
 		runtime.ReadMemStats(&memStats)
 		lastMemStats = &memStats
-		fmt.Printf("+ metric %s\n", a.String())
+		logger.Log.Info("+ metric\n", zap.Int64("pollCount", pollCount), zap.String("ticker", a.String()))
 	}
+}
+
+func sendGauge(metrics handlers.Metrics, url string) error {
+	metrics.Delta = nil
+	return sendUpdateMetricsRequest(url, metrics)
+}
+
+func sendPollCount(url string) error {
+	metrics := handlers.Metrics{
+		ID:    PollCount,
+		MType: multistorage.MetricTypeCounter,
+		Delta: &pollCount,
+		Value: nil,
+	}
+	return sendUpdateMetricsRequest(url, metrics)
+}
+
+func sendUpdateMetricsRequest(url string, metrics handlers.Metrics) error {
+	b, err := json.Marshal(metrics)
+	if err != nil {
+		logger.Log.Error("failed to send metric: matshal request body", zap.Error(err))
+		return err
+	}
+	err = retry.Do(
+		func() error {
+			compressedBytes, err := compressor.Compress(b)
+			if err != nil {
+				logger.Log.Error("failed to compress", zap.String("metric_json", string(b)), zap.Error(err))
+				return err
+			}
+			request, err := http.NewRequest(
+				http.MethodPost,
+				fmt.Sprintf("%s/update", url),
+				bytes.NewBuffer(compressedBytes),
+			)
+			if err != nil {
+				logger.Log.Error("failed to create new request", zap.String("metric_json", string(b)), zap.Error(err))
+				return err
+			}
+			request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
+			request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
+			request.Header.Set("Content-Encoding", compressor.ContentEncoding)
+			resp, err := http.DefaultClient.Do(request)
+			if err != nil {
+				logger.Log.Error(
+					"send request error",
+					zap.String("url", url),
+					zap.Error(err),
+				)
+				return err
+			}
+			if resp != nil {
+				bytes, err := io.ReadAll(resp.Body)
+				if err != nil {
+					logger.Log.Error("error read response body",
+						zap.String("request.uri", request.RequestURI),
+						zap.String("request.body", string(b)),
+					)
+					return err
+				}
+				logger.Log.Debug("read response body",
+					zap.String("request.uri", request.RequestURI),
+					zap.String("request.body", string(b)),
+					zap.String("response.status", resp.Status),
+					zap.String("response.decompressed_body", string(bytes)),
+				)
+				err = resp.Body.Close()
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		retry.Attempts(defaultRetryCount),
+		retry.Delay(500*time.Millisecond),
+		retry.OnRetry(func(n uint, err error) {
+			log.Printf("Retrying request after error: %v", err)
+		}),
+	)
+	if err != nil {
+		logger.Log.Error(
+			"retry error",
+			zap.Error(err),
+		)
+		return err
+	}
+
+	return nil
+}
+
+func collectMetricsByMemStat(stats *runtime.MemStats) ([]handlers.Metrics, error) {
+	m := make([]handlers.Metrics, 0)
+
+	f := rand.Float64()
+	m = append(m, handlers.Metrics{
+		ID:    RandomValue,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err := strconv.ParseFloat(fmt.Sprintf("%v", stats.Alloc), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    Alloc,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.BuckHashSys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    BuckHashSys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.Frees), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    Frees,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	m = append(m, handlers.Metrics{
+		ID:    GCCPUFraction,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &stats.GCCPUFraction,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.GCSys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    GCSys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &stats.GCCPUFraction,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.HeapAlloc), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    HeapAlloc,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.HeapIdle), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    HeapIdle,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.HeapInuse), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    HeapInuse,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.HeapObjects), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    HeapObjects,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.HeapReleased), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    HeapReleased,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.HeapSys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    HeapSys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.LastGC), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    LastGC,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.Lookups), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    Lookups,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.MCacheInuse), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    MCacheInuse,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.MCacheSys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    MCacheSys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.MSpanInuse), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    MSpanInuse,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.MSpanSys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    MSpanSys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.Mallocs), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    Mallocs,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.NextGC), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    NextGC,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.NumForcedGC), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    NumForcedGC,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.NumGC), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    NumGC,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.OtherSys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    OtherSys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.PauseTotalNs), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    PauseTotalNs,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.StackInuse), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    StackInuse,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.StackSys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    StackSys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.Sys), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    Sys,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	f, err = strconv.ParseFloat(fmt.Sprintf("%v", stats.TotalAlloc), 64)
+	if err != nil {
+		return nil, err
+	}
+	m = append(m, handlers.Metrics{
+		ID:    TotalAlloc,
+		MType: multistorage.MetricTypeGauge,
+		Delta: nil,
+		Value: &f,
+	})
+
+	return m, nil
 }

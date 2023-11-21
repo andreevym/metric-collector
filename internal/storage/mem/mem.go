@@ -6,8 +6,8 @@ import (
 )
 
 type Storage struct {
-	m  map[string][]string
-	rw sync.RWMutex
+	data map[string][]string
+	rw   sync.RWMutex
 }
 
 func NewStorage() *Storage {
@@ -19,17 +19,17 @@ func NewStorage() *Storage {
 
 func (s *Storage) Create(key string, val string) error {
 	s.rw.Lock()
-	values := s.m[key]
+	values := s.data[key]
 	if values == nil {
 		values = make([]string, 0)
 	}
-	s.m[key] = append(values, val)
+	s.data[key] = append(values, val)
 	s.rw.Unlock()
 	return nil
 }
 
 func (s *Storage) Read(key string) ([]string, error) {
-	v, ok := s.m[key]
+	v, ok := s.data[key]
 	if !ok {
 		return nil, fmt.Errorf("%w: not found value by key %s", ErrValueNotFound, key)
 	}
@@ -38,16 +38,24 @@ func (s *Storage) Read(key string) ([]string, error) {
 
 func (s *Storage) Update(key string, val []string) error {
 	s.rw.Lock()
-	if s.m[key] == nil {
+	if s.data[key] == nil {
 		return fmt.Errorf("can't update value by key, because value doesn't exists: key %s",
 			key)
 	}
-	s.m[key] = val
+	s.data[key] = val
 	s.rw.Unlock()
 	return nil
 }
 
 func (s *Storage) Delete(key string) error {
-	delete(s.m, key)
+	delete(s.data, key)
 	return nil
+}
+
+func (s *Storage) UpdateData(data map[string][]string) {
+	s.data = data
+}
+
+func (s *Storage) Data() map[string][]string {
+	return s.data
 }

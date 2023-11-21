@@ -6,9 +6,9 @@ import (
 	"github.com/andreevym/metric-collector/internal/repository"
 )
 
-func Store(s repository.Storage, metricName string, metricValue string) error {
+func Store(s repository.Storage, metricName string, metricValue string) (string, error) {
 	err := s.Create(metricName, metricValue)
-	return err
+	return metricValue, err
 }
 
 func Validate(metricValue string) error {

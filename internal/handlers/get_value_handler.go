@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/andreevym/metric-collector/internal/multistorage"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
-// GetMetricByTypeAndNameHandler method return metric value by metric type and metric name
+// GetValueHandler method return metric value by metric type and metric name
 // example request url: http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
-func (s ServiceHandlers) GetMetricByTypeAndNameHandler(w http.ResponseWriter, r *http.Request) {
+func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 

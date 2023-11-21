@@ -3,14 +3,13 @@ package main
 import (
 	"log"
 
-	"github.com/andreevym/metric-collector/internal/config"
+	"github.com/andreevym/metric-collector/internal/config/serverconfig"
+	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/server"
 )
 
 func main() {
-	config.ServerFlags()
-
-	cfg, err := config.ServerParse()
+	cfg, err := serverconfig.Flags()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -18,8 +17,13 @@ func main() {
 		log.Fatal("server config can't be nil")
 	}
 
-	err = server.Start(cfg.Address)
+	_, err = logger.Logger(cfg.LogLevel)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("logger can't be init", cfg.LogLevel, err)
+	}
+
+	err = server.Start(cfg)
+	if err != nil {
+		logger.Log.Fatal(err.Error())
 	}
 }

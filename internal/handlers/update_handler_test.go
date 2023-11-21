@@ -1,6 +1,8 @@
 package handlers_test
 
 import (
+	"bytes"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -19,10 +21,13 @@ func TestUpdateHandler(t *testing.T) {
 		resp        string
 		statusCode  int
 	}
+	f := float64(1)
+	d := int64(1)
 	tests := []struct {
 		name       string
 		want       want
 		request    string
+		metrics    *handlers.Metrics
 		httpMethod string
 	}{
 		{
@@ -30,7 +35,67 @@ func TestUpdateHandler(t *testing.T) {
 			want: want{
 				contentType: handlers.UpdateMetricContentType,
 				statusCode:  http.StatusOK,
-				resp:        "",
+				resp:        "{\"id\":\"test\",\"type\":\"counter\",\"delta\":1}",
+			},
+			request:    "/update",
+			httpMethod: http.MethodPost,
+			metrics: &handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeCounter,
+				Delta: &d,
+			},
+		},
+		{
+			name: "success update counter",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"counter\",\"delta\":1}",
+			},
+			request:    "/update/",
+			httpMethod: http.MethodPost,
+			metrics: &handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeCounter,
+				Delta: &d,
+			},
+		},
+		{
+			name: "success update gauge",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"gauge\",\"value\":1}",
+			},
+			request:    "/update",
+			httpMethod: http.MethodPost,
+			metrics: &handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeGauge,
+				Value: &f,
+			},
+		},
+		{
+			name: "success update gauge",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"gauge\",\"value\":1}",
+			},
+			request:    "/update/",
+			httpMethod: http.MethodPost,
+			metrics: &handlers.Metrics{
+				ID:    "test",
+				MType: multistorage.MetricTypeGauge,
+				Value: &f,
+			},
+		},
+		{
+			name: "success update counter",
+			want: want{
+				contentType: handlers.UpdateMetricContentType,
+				statusCode:  http.StatusOK,
+				resp:        "{\"id\":\"test\",\"type\":\"counter\",\"delta\":1}",
 			},
 			request:    "/update/counter/test/1",
 			httpMethod: http.MethodPost,
@@ -40,7 +105,7 @@ func TestUpdateHandler(t *testing.T) {
 			want: want{
 				contentType: handlers.UpdateMetricContentType,
 				statusCode:  http.StatusOK,
-				resp:        "",
+				resp:        "{\"id\":\"test\",\"type\":\"gauge\",\"value\":1}",
 			},
 			request:    "/update/gauge/test/1",
 			httpMethod: http.MethodPost,
@@ -50,14 +115,21 @@ func TestUpdateHandler(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			counterMemStorage := mem.NewStorage()
 			gaugeMemStorage := mem.NewStorage()
-			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage)
+			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 			require.NoError(t, err)
 			serviceHandlers := handlers.NewServiceHandlers(store)
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
-
-			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request)
+			var reqBody *bytes.Buffer
+			if test.metrics != nil {
+				marshal, err := json.Marshal(test.metrics)
+				require.NoError(t, err)
+				reqBody = bytes.NewBuffer(marshal)
+			} else {
+				reqBody = bytes.NewBuffer([]byte{})
+			}
+			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, reqBody)
 			assert.Equal(t, test.want.statusCode, statusCode)
 			assert.Equal(t, test.want.contentType, contentType)
 			assert.Equal(t, test.want.resp, get)
@@ -65,8 +137,8 @@ func TestUpdateHandler(t *testing.T) {
 	}
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string, string) {
-	req, err := http.NewRequest(method, ts.URL+path, nil)
+func testRequest(t *testing.T, ts *httptest.Server, method, path string, reqBody io.Reader) (int, string, string) {
+	req, err := http.NewRequest(method, ts.URL+path, reqBody)
 	require.NoError(t, err)
 
 	resp, err := ts.Client().Do(req)

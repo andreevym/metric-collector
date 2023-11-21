@@ -1,4 +1,4 @@
-package config
+package agentconfig
 
 import (
 	"flag"
@@ -10,6 +10,7 @@ type AgentConfig struct {
 	Address        string `env:"ADDRESS"`
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
+	LogLevel       string `env:"LOG_LEVEL"`
 }
 
 var (
@@ -19,15 +20,16 @@ var (
 	flagReportInterval int
 	// flagPollInterval частоту опроса метрик из пакета runtime (по умолчанию 2 секунды).
 	flagPollInterval int
+	// flagLogLevel уровень логирования агента
+	flagLogLevel string
 )
 
-func AgentFlags() {
+func Flags() (*AgentConfig, error) {
 	flag.StringVar(&flagAddr, "a", "localhost:8080", "address and port to run server")
 	flag.IntVar(&flagReportInterval, "r", 10, "report interval (seconds)")
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval (seconds)")
-}
+	flag.StringVar(&flagLogLevel, "l", "info", "log level")
 
-func AgentParse() (*AgentConfig, error) {
 	// парсим переданные серверу агенту в зарегистрированные переменные
 	flag.Parse()
 
@@ -49,6 +51,11 @@ func AgentParse() (*AgentConfig, error) {
 	// Отправлять метрики на сервер с заданной частотой: reportInterval — 10 секунд.
 	if config.ReportInterval == 0 {
 		config.ReportInterval = flagReportInterval
+	}
+
+	// Логирование, по умолчанию info
+	if config.LogLevel == "" {
+		config.LogLevel = flagLogLevel
 	}
 
 	return &config, nil
