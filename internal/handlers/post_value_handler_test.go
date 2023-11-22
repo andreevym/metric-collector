@@ -176,16 +176,16 @@ func TestGetHandler(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			for k, v := range test.updateCounter {
-				err := counterMemStorage.Update(k, []string{v})
+				err := counterMemStorage.Update(k, v)
 				assert.NoError(t, err)
 			}
 			for k, v := range test.updateGauge {
-				err := gaugeMemStorage.Update(k, []string{v})
+				err := gaugeMemStorage.Update(k, v)
 				assert.NoError(t, err)
 			}
-			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+			metricStorage, err := multistorage.NewMetricStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 			require.NoError(t, err)
-			serviceHandlers := handlers.NewServiceHandlers(store, nil)
+			serviceHandlers := handlers.NewServiceHandlers(metricStorage, nil)
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()

@@ -6,13 +6,13 @@ import (
 )
 
 type ServiceHandlers struct {
-	storage  *multistorage.Storage
-	dbClient *pg.Client
+	metricStorage *multistorage.MetricStorage
+	dbClient      *pg.Client
 }
 
-func NewServiceHandlers(storage *multistorage.Storage, dbClient *pg.Client) *ServiceHandlers {
+func NewServiceHandlers(storage *multistorage.MetricStorage, dbClient *pg.Client) *ServiceHandlers {
 	return &ServiceHandlers{
-		storage:  storage,
-		dbClient: dbClient,
+		metricStorage: storage,
+		dbClient:      dbClient,
 	}
 }

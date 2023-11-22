@@ -3,10 +3,10 @@ package gauge
 import (
 	"strconv"
 
-	"github.com/andreevym/metric-collector/internal/repository"
+	"github.com/andreevym/metric-collector/internal/storage"
 )
 
-func Store(s repository.Storage, metricName string, metricValue string) (string, error) {
+func Store(s storage.Storage, metricName string, metricValue string) (string, error) {
 	err := s.Create(metricName, metricValue)
 	return metricValue, err
 }
@@ -16,10 +16,10 @@ func Validate(metricValue string) error {
 	return err
 }
 
-func Get(s repository.Storage, metricName string) ([]string, error) {
+func Get(s storage.Storage, metricName string) (string, error) {
 	v, err := s.Read(metricName)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	return v, nil

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/andreevym/metric-collector/internal/repository"
+	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 )
 
-func Store(s repository.Storage, metricName string, metricValue string) (string, error) {
+func Store(s storage.Storage, metricName string, metricValue string) (string, error) {
 	metricValues, err := s.Read(metricName)
 	if err != nil && !errors.Is(err, mem.ErrValueNotFound) {
 		return "", err
@@ -22,7 +22,7 @@ func Store(s repository.Storage, metricName string, metricValue string) (string,
 		return metricValue, nil
 	}
 
-	existsMetricVal, err := strconv.ParseInt(metricValues[0], 10, 64)
+	existsMetricVal, err := strconv.ParseInt(metricValues, 10, 64)
 	if err != nil {
 		return "", err
 	}
@@ -31,7 +31,7 @@ func Store(s repository.Storage, metricName string, metricValue string) (string,
 		return "", err
 	}
 	newVal := strconv.FormatInt(existsMetricVal+v, 10)
-	err = s.Update(metricName, []string{newVal})
+	err = s.Update(metricName, newVal)
 	if err != nil {
 		return "", err
 	}
@@ -43,7 +43,7 @@ func Validate(metricValue string) error {
 	return err
 }
 
-func Get(s repository.Storage, metricName string) (string, error) {
+func Get(s storage.Storage, metricName string) (string, error) {
 	v, err := s.Read(metricName)
 	if err != nil {
 		return "", err
@@ -53,5 +53,5 @@ func Get(s repository.Storage, metricName string) (string, error) {
 		return "", fmt.Errorf("can't find metric by name %s", metricName)
 	}
 
-	return v[0], nil
+	return v, nil
 }

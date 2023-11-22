@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -14,7 +13,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 	metricType := chi.URLParam(r, "metricType")
 	metricName := chi.URLParam(r, "metricName")
 
-	v, err := multistorage.GetMetric(s.storage, metricType, metricName)
+	v, err := s.metricStorage.GetMetric(metricType, metricName)
 	if err != nil || v == "" {
 		w.WriteHeader(http.StatusNotFound)
 	} else {

@@ -4,7 +4,7 @@ import "testing"
 
 func TestStorage_Create(t *testing.T) {
 	type fields struct {
-		m map[string][]string
+		m map[string]string
 	}
 	type args struct {
 		key string
@@ -19,7 +19,7 @@ func TestStorage_Create(t *testing.T) {
 		{
 			name: "create",
 			fields: fields{
-				map[string][]string{},
+				map[string]string{},
 			},
 			args: args{
 				key: "k",
@@ -42,11 +42,11 @@ func TestStorage_Create(t *testing.T) {
 
 func TestStorage_Update(t *testing.T) {
 	type fields struct {
-		m map[string][]string
+		m map[string]string
 	}
 	type args struct {
 		key string
-		val []string
+		val string
 	}
 	tests := []struct {
 		name    string
@@ -57,24 +57,24 @@ func TestStorage_Update(t *testing.T) {
 		{
 			name: "update exists",
 			fields: fields{
-				map[string][]string{
-					"k": {"a", "b"},
+				map[string]string{
+					"k": "a",
 				},
 			},
 			args: args{
 				key: "k",
-				val: []string{"c"},
+				val: "c",
 			},
 			wantErr: false,
 		},
 		{
 			name: "update not exists",
 			fields: fields{
-				map[string][]string{},
+				map[string]string{},
 			},
 			args: args{
 				key: "k",
-				val: []string{"c"},
+				val: "c",
 			},
 			wantErr: true,
 		},

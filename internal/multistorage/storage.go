@@ -13,19 +13,24 @@ import (
 	"github.com/andreevym/metric-collector/internal/counter"
 	"github.com/andreevym/metric-collector/internal/gauge"
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/repository"
+	"github.com/andreevym/metric-collector/internal/storage"
 	"go.uber.org/zap"
 )
 
-type Storage struct {
-	counterStorage    repository.Storage
-	gaugeStorage      repository.Storage
+type MetricStorage struct {
+	counterStorage    storage.Storage
+	gaugeStorage      storage.Storage
 	counterBackupPath string
 	gaugeBackupPath   string
 	cfg               *serverconfig.ServerConfig
 }
 
-func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Storage, cfg *serverconfig.ServerConfig) (*Storage, error) {
+type Restorable interface {
+	UpdateData(data map[string][]string)
+	Data() map[string][]string
+}
+
+func NewMetricStorage(counterStorage storage.Storage, gaugeStorage storage.Storage, cfg *serverconfig.ServerConfig) (*MetricStorage, error) {
 	if counterStorage == nil ||
 		(reflect.ValueOf(counterStorage).Kind() == reflect.Ptr && reflect.ValueOf(counterStorage).IsNil()) {
 		return nil, errors.New("counter storage can't be nil")
@@ -40,7 +45,7 @@ func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Stora
 		return nil, errors.New("server config can't be nil")
 	}
 
-	s := &Storage{
+	s := &MetricStorage{
 		counterStorage: counterStorage,
 		gaugeStorage:   gaugeStorage,
 		cfg:            cfg,
@@ -66,12 +71,12 @@ func NewStorage(counterStorage repository.Storage, gaugeStorage repository.Stora
 	return s, nil
 }
 
-func (s Storage) GaugeStorage() repository.Storage {
-	return s.gaugeStorage
+func (storage *MetricStorage) GaugeStorage() storage.Storage {
+	return storage.gaugeStorage
 }
 
-func (s Storage) CounterStorage() repository.Storage {
-	return s.counterStorage
+func (storage *MetricStorage) CounterStorage() storage.Storage {
+	return storage.counterStorage
 }
 
 func isDirectory(path string) (bool, error) {
@@ -83,24 +88,27 @@ func isDirectory(path string) (bool, error) {
 	return fileInfo.IsDir(), err
 }
 
-func (s Storage) Restore() error {
-	if s.counterBackupPath == "" {
-		return errors.New("storage counterBackupPath path can't be empty")
+func (storage *MetricStorage) Restore() error {
+	if r, ok := storage.counterStorage.(Restorable); ok {
+		if storage.counterBackupPath == "" {
+			return errors.New("storage counterBackupPath path can't be empty")
+		}
+		data, err := backup.Load(storage.counterBackupPath)
+		if err != nil {
+			return err
+		}
+		r.UpdateData(data)
 	}
-	if s.gaugeBackupPath == "" {
-		return errors.New("storage gaugeBackupPath path can't be empty")
+	if r, ok := storage.gaugeStorage.(Restorable); ok {
+		if storage.gaugeBackupPath == "" {
+			return errors.New("storage gaugeBackupPath path can't be empty")
+		}
+		data, err := backup.Load(storage.gaugeBackupPath)
+		if err != nil {
+			return err
+		}
+		r.UpdateData(data)
 	}
-
-	data, err := backup.Load(s.counterBackupPath)
-	if err != nil {
-		return err
-	}
-	s.counterStorage.UpdateData(data)
-	data, err = backup.Load(s.gaugeBackupPath)
-	if err != nil {
-		return err
-	}
-	s.gaugeStorage.UpdateData(data)
 	return nil
 }
 
@@ -109,7 +117,11 @@ const (
 	MetricTypeCounter string = "counter"
 )
 
-func SaveMetric(storage *Storage, metricName string, metricType string, metricValue string) (string, error) {
+func (storage *MetricStorage) SaveMetric(
+	metricName string,
+	metricType string,
+	metricValue string,
+) (string, error) {
 	var newVal string
 	switch metricType {
 	case MetricTypeCounter:
@@ -122,12 +134,14 @@ func SaveMetric(storage *Storage, metricName string, metricType string, metricVa
 			return "", err
 		}
 		if storage.cfg != nil && storage.counterBackupPath != "" && storage.cfg.StoreInterval > 0 {
-			time.AfterFunc(storage.cfg.StoreInterval, func() {
-				err = backup.Save(storage.counterBackupPath, storage.CounterStorage().Data())
-				if err != nil {
-					logger.Log.Error("problem to save backup ", zap.Error(err))
-				}
-			})
+			if r, ok := storage.gaugeStorage.(Restorable); ok {
+				time.AfterFunc(storage.cfg.StoreInterval, func() {
+					err = backup.Save(storage.counterBackupPath, r.Data())
+					if err != nil {
+						logger.Log.Error("problem to save backup ", zap.Error(err))
+					}
+				})
+			}
 		}
 	case MetricTypeGauge:
 		err := gauge.Validate(metricValue)
@@ -139,12 +153,14 @@ func SaveMetric(storage *Storage, metricName string, metricType string, metricVa
 			return "", err
 		}
 		if storage.cfg != nil && storage.gaugeBackupPath != "" && storage.cfg.StoreInterval > 0 {
-			time.AfterFunc(storage.cfg.StoreInterval, func() {
-				err = backup.Save(storage.gaugeBackupPath, storage.GaugeStorage().Data())
-				if err != nil {
-					logger.Log.Error("problem to save backup ", zap.Error(err))
-				}
-			})
+			if r, ok := storage.gaugeStorage.(Restorable); ok {
+				time.AfterFunc(storage.cfg.StoreInterval, func() {
+					err = backup.Save(storage.gaugeBackupPath, r.Data())
+					if err != nil {
+						logger.Log.Error("problem to save backup ", zap.Error(err))
+					}
+				})
+			}
 		}
 	default:
 		return "", errors.New("metric type not found")
@@ -153,20 +169,12 @@ func SaveMetric(storage *Storage, metricName string, metricType string, metricVa
 	return newVal, nil
 }
 
-func GetMetric(storage *Storage, metricType string, metricName string) (string, error) {
+func (storage *MetricStorage) GetMetric(metricType string, metricName string) (string, error) {
 	switch metricType {
 	case MetricTypeCounter:
 		return counter.Get(storage.CounterStorage(), metricName)
 	case MetricTypeGauge:
-		v, err := gauge.Get(storage.GaugeStorage(), metricName)
-		if err != nil {
-			return "", err
-		}
-		if len(v) != 0 {
-			return v[len(v)-1], nil
-		} else {
-			return "", nil
-		}
+		return gauge.Get(storage.GaugeStorage(), metricName)
 	default:
 		return "", fmt.Errorf("metric type '%s' not found", metricType)
 	}

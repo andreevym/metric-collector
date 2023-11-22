@@ -27,7 +27,7 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	valStr, err := multistorage.GetMetric(s.storage, metrics.MType, metrics.ID)
+	valStr, err := s.metricStorage.GetMetric(metrics.MType, metrics.ID)
 	if err != nil || valStr == "" {
 		w.WriteHeader(http.StatusNotFound)
 		return

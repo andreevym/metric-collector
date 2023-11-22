@@ -69,7 +69,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		metricValue = chi.URLParam(r, "metricValue")
 	}
 
-	newVal, err := multistorage.SaveMetric(s.storage, metricName, metricType, metricValue)
+	newVal, err := s.metricStorage.SaveMetric(metricName, metricType, metricValue)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
