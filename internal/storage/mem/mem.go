@@ -3,17 +3,28 @@ package mem
 import (
 	"fmt"
 	"sync"
+	"time"
+
+	"github.com/andreevym/metric-collector/internal/logger"
+	"go.uber.org/zap"
 )
 
 type Storage struct {
 	data map[string]string
 	rw   sync.RWMutex
+	opt  *BackupOptional
 }
 
-func NewStorage() *Storage {
+type BackupOptional struct {
+	BackupPath    string
+	StoreInterval time.Duration
+}
+
+func NewStorage(opt *BackupOptional) *Storage {
 	return &Storage{
 		map[string]string{},
 		sync.RWMutex{},
+		opt,
 	}
 }
 
@@ -48,10 +59,31 @@ func (s *Storage) Delete(key string) error {
 	return nil
 }
 
-func (s *Storage) UpdateData(data map[string]string) {
+func (s *Storage) Restore() error {
+	if s.opt == nil || s.opt.BackupPath == "" {
+		return nil
+	}
+	data, err := Load(s.opt.BackupPath)
+	if err != nil {
+		return err
+	}
 	s.data = data
+
+	return nil
 }
 
-func (s *Storage) Data() map[string]string {
-	return s.data
+func (s *Storage) Backup() error {
+	if s.opt == nil || s.opt.BackupPath == "" || s.opt.StoreInterval <= 0 {
+		return nil
+	}
+
+	time.AfterFunc(s.opt.StoreInterval, func() {
+		err := Save(s.opt.BackupPath, s.data)
+		if err != nil {
+			logger.Log.Error("problem to save backup ", zap.Error(err))
+			panic(err)
+		}
+	})
+
+	return nil
 }

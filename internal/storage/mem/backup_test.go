@@ -1,4 +1,4 @@
-package backup
+package mem
 
 import (
 	"os"
@@ -15,10 +15,10 @@ func TestEndToEndBackup(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	data := make(map[string][]string)
+	data := make(map[string]string)
 	for i := 0; i < 1000; i++ {
 		formatInt := strconv.FormatInt(int64(i), 10)
-		data[formatInt] = []string{formatInt}
+		data[formatInt] = formatInt
 	}
 
 	err = Save(f.Name(), data)

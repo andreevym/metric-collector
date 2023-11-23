@@ -183,7 +183,7 @@ func TestGetHandler(t *testing.T) {
 				err := gaugeMemStorage.Update(k, v)
 				assert.NoError(t, err)
 			}
-			metricStorage, err := multistorage.NewMetricStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+			metricStorage, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
 			require.NoError(t, err)
 			serviceHandlers := handlers.NewServiceHandlers(metricStorage, nil)
 			router := handlers.NewRouter(serviceHandlers)

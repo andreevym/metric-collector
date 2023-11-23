@@ -36,7 +36,6 @@ type ServerEnvConfig struct {
 	// файла при старте сервера (по умолчанию true).
 	Restore string `env:"RESTORE"`
 	// DatabaseDsn Строка с адресом подключения к БД должна получаться из переменной окружения DATABASE_DSN
-	// или флага командной строки -d.
 	DatabaseDsn string `env:"DATABASE_DSN"`
 }
 

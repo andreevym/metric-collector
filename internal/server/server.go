@@ -26,8 +26,43 @@ func Start(cfg *serverconfig.ServerConfig) error {
 	var err error
 
 	if cfg.DatabaseDsn == "" {
-		counterStorage = mem.NewStorage()
-		gaugeStorage = mem.NewStorage()
+
+		var counterBackupPath string
+		var gaugeBackupPath string
+
+		if cfg.FileStoragePath != "" {
+			err = os.MkdirAll(cfg.FileStoragePath+"/", 0777)
+			if err != nil {
+				return err
+			}
+			if ok, _ := isDirectory(cfg.FileStoragePath); !ok {
+				return fmt.Errorf("storage path need to be directory %s", cfg.FileStoragePath)
+			}
+			counterBackupPath = cfg.FileStoragePath + "/counter.backup"
+			gaugeBackupPath = cfg.FileStoragePath + "/gauge.backup"
+		}
+		memCounterStorage := mem.NewStorage(&mem.BackupOptional{
+			BackupPath:    counterBackupPath,
+			StoreInterval: cfg.StoreInterval,
+		})
+		memGaugeStorage := mem.NewStorage(&mem.BackupOptional{
+			BackupPath:    gaugeBackupPath,
+			StoreInterval: cfg.StoreInterval,
+		})
+
+		if cfg.Restore {
+			err = memCounterStorage.Restore()
+			if err != nil {
+				return fmt.Errorf("failed to restore: %w", err)
+			}
+			err = memGaugeStorage.Restore()
+			if err != nil {
+				return fmt.Errorf("failed to restore: %w", err)
+			}
+		}
+
+		counterStorage = memCounterStorage
+		gaugeStorage = memGaugeStorage
 	} else {
 		dbClient, err = pg.NewClient(cfg.DatabaseDsn)
 		if err != nil {
@@ -43,7 +78,7 @@ func Start(cfg *serverconfig.ServerConfig) error {
 		counterPgStorage := postgres.NewPgStorage(dbClient, "counter")
 		gaugePgStorage := postgres.NewPgStorage(dbClient, "gauge")
 
-		err := filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
+		err = filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
 			if !info.IsDir() {
 				logger.Log.Info("apply migration", zap.String("path", path))
 				bytes, err := os.ReadFile(path)
@@ -67,7 +102,7 @@ func Start(cfg *serverconfig.ServerConfig) error {
 		gaugeStorage = gaugePgStorage
 	}
 
-	store, err := multistorage.NewMetricStorage(counterStorage, gaugeStorage, cfg)
+	store, err := multistorage.NewMetricManager(counterStorage, gaugeStorage)
 	if err != nil {
 		return err
 	}
@@ -81,4 +116,13 @@ func Start(cfg *serverconfig.ServerConfig) error {
 	)
 
 	return http.ListenAndServe(cfg.Address, router)
+}
+
+func isDirectory(path string) (bool, error) {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false, err
+	}
+
+	return fileInfo.IsDir(), err
 }
