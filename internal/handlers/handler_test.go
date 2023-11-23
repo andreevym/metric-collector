@@ -17,9 +17,9 @@ import (
 )
 
 func TestHandler_GaugeEndToEnd(t *testing.T) {
-	counterMemStorage := mem.NewStorage()
-	gaugeMemStorage := mem.NewStorage()
-	store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+	counterMemStorage := mem.NewStorage(nil)
+	gaugeMemStorage := mem.NewStorage(nil)
+	store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage)
 	require.NoError(t, err)
 	serviceHandlers := handlers.NewServiceHandlers(store, nil)
 	router := handlers.NewRouter(serviceHandlers)
@@ -70,9 +70,9 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 }
 
 func TestHandler_CounterEndToEnd(t *testing.T) {
-	counterMemStorage := mem.NewStorage()
-	gaugeMemStorage := mem.NewStorage()
-	metricStorage, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+	counterMemStorage := mem.NewStorage(nil)
+	gaugeMemStorage := mem.NewStorage(nil)
+	metricStorage, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage)
 	require.NoError(t, err)
 	serviceHandlers := handlers.NewServiceHandlers(metricStorage, nil)
 	router := handlers.NewRouter(serviceHandlers)

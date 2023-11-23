@@ -28,15 +28,15 @@ var emptyServerConfig = &serverconfig.ServerConfig{
 }
 
 func TestGzipCompressionUpdate(t *testing.T) {
-	counterMemStorage := mem.NewStorage()
+	counterMemStorage := mem.NewStorage(nil)
 	err := counterMemStorage.Create("A", "1")
 	assert.NoError(t, err)
 
-	gaugeMemStorage := mem.NewStorage()
+	gaugeMemStorage := mem.NewStorage(nil)
 	err = gaugeMemStorage.Create("B", "0.2")
 	assert.NoError(t, err)
 
-	store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+	store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store, nil)
 	router := NewRouter(
@@ -134,15 +134,15 @@ func TestGzipCompressionUpdate(t *testing.T) {
 }
 
 func TestGzipCompressionValue(t *testing.T) {
-	counterMemStorage := mem.NewStorage()
+	counterMemStorage := mem.NewStorage(nil)
 	err := counterMemStorage.Create("A", "1")
 	assert.NoError(t, err)
 
-	gaugeMemStorage := mem.NewStorage()
+	gaugeMemStorage := mem.NewStorage(nil)
 	err = gaugeMemStorage.Create("B", "0.2")
 	assert.NoError(t, err)
 
-	store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+	store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage)
 	require.NoError(t, err)
 	serviceHandlers := NewServiceHandlers(store, nil)
 	router := NewRouter(

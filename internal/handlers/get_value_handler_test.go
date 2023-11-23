@@ -6,21 +6,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/andreevym/metric-collector/internal/config/serverconfig"
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-var emptyServerConfig = &serverconfig.ServerConfig{
-	Address:         "",
-	LogLevel:        "",
-	StoreInterval:   0,
-	FileStoragePath: "",
-	Restore:         false,
-}
 
 func TestGetValueHandler(t *testing.T) {
 	type want struct {
@@ -143,12 +134,12 @@ func TestGetValueHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			counterMemStorage := mem.NewStorage()
+			counterMemStorage := mem.NewStorage(nil)
 			for k, v := range test.createCounter {
 				err := counterMemStorage.Create(k, v)
 				assert.NoError(t, err)
 			}
-			gaugeMemStorage := mem.NewStorage()
+			gaugeMemStorage := mem.NewStorage(nil)
 			for k, v := range test.createGauge {
 				err := gaugeMemStorage.Create(k, v)
 				assert.NoError(t, err)
@@ -161,7 +152,7 @@ func TestGetValueHandler(t *testing.T) {
 				err := gaugeMemStorage.Update(k, v)
 				assert.NoError(t, err)
 			}
-			store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+			store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage)
 			require.NoError(t, err)
 			serviceHandlers := handlers.NewServiceHandlers(store, nil)
 			router := handlers.NewRouter(serviceHandlers)

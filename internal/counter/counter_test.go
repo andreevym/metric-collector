@@ -10,7 +10,7 @@ import (
 )
 
 func TestCounterEndToEnd(t *testing.T) {
-	memStorage := mem.NewStorage()
+	memStorage := mem.NewStorage(nil)
 	key1 := rand.Int63()
 	val1 := rand.Int63()
 	store(t, key1, val1, memStorage)

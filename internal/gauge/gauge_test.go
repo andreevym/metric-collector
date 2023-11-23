@@ -10,14 +10,14 @@ import (
 )
 
 func TestGauge_Get_not_found(t *testing.T) {
-	storage := mem.NewStorage()
+	storage := mem.NewStorage(nil)
 	metricName := fmt.Sprintf("key_%f", rand.Float64())
 	_, err := Get(storage, metricName)
 	require.ErrorIs(t, err, mem.ErrValueNotFound)
 }
 
 func TestGaugeEndToEnd(t *testing.T) {
-	storage := mem.NewStorage()
+	storage := mem.NewStorage(nil)
 	key1 := fmt.Sprintf("key_%f", rand.Float64())
 	val11 := rand.Float64()
 	store(t, key1, val11, storage)

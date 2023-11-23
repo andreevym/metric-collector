@@ -165,12 +165,12 @@ func TestGetHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			counterMemStorage := mem.NewStorage()
+			counterMemStorage := mem.NewStorage(nil)
 			for k, v := range test.createCounter {
 				err := counterMemStorage.Create(k, v)
 				assert.NoError(t, err)
 			}
-			gaugeMemStorage := mem.NewStorage()
+			gaugeMemStorage := mem.NewStorage(nil)
 			for k, v := range test.createGauge {
 				err := gaugeMemStorage.Create(k, v)
 				assert.NoError(t, err)
@@ -183,7 +183,7 @@ func TestGetHandler(t *testing.T) {
 				err := gaugeMemStorage.Update(k, v)
 				assert.NoError(t, err)
 			}
-			metricStorage, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+			metricStorage, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage)
 			require.NoError(t, err)
 			serviceHandlers := handlers.NewServiceHandlers(metricStorage, nil)
 			router := handlers.NewRouter(serviceHandlers)

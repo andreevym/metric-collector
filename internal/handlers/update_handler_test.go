@@ -113,9 +113,9 @@ func TestUpdateHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			counterMemStorage := mem.NewStorage()
-			gaugeMemStorage := mem.NewStorage()
-			store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage, emptyServerConfig)
+			counterMemStorage := mem.NewStorage(nil)
+			gaugeMemStorage := mem.NewStorage(nil)
+			store, err := multistorage.NewMetricManager(counterMemStorage, gaugeMemStorage)
 			require.NoError(t, err)
 			serviceHandlers := handlers.NewServiceHandlers(store, nil)
 			router := handlers.NewRouter(serviceHandlers)
