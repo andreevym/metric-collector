@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/andreevym/metric-collector/internal/pg"
+	"github.com/andreevym/metric-collector/internal/storage"
 )
 
 type PgStorage struct {
@@ -28,7 +29,11 @@ func (s *PgStorage) Create(key string, val string) error {
 }
 
 func (s *PgStorage) Read(key string) (string, error) {
-	return s.dbClient.Select(s.tableName, key)
+	r, err := s.dbClient.Select(s.tableName, key)
+	if err != nil && err.Error() == "sql: no rows in result set" {
+		return "", storage.ErrValueNotFound
+	}
+	return r, err
 }
 
 func (s *PgStorage) Update(key string, val string) error {

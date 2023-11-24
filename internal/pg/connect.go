@@ -72,9 +72,10 @@ func (c *Client) Insert(tableName string, key string, value string) error {
 	if err != nil {
 		return fmt.Errorf("failed insert %w", err)
 	}
-	affected, err := r.RowsAffected()
-	fmt.Println(affected)
-	fmt.Println(err.Error())
+	_, err = r.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed insert %w", err)
+	}
 
 	return nil
 }

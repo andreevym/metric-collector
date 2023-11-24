@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/andreevym/metric-collector/internal/logger"
+	"github.com/andreevym/metric-collector/internal/storage"
 	"go.uber.org/zap"
 )
 
@@ -38,7 +39,7 @@ func (s *Storage) Create(key string, val string) error {
 func (s *Storage) Read(key string) (string, error) {
 	v, ok := s.data[key]
 	if !ok {
-		return "", fmt.Errorf("%w: not found value by key %s", ErrValueNotFound, key)
+		return "", fmt.Errorf("%w: not found value by key %s", storage.ErrValueNotFound, key)
 	}
 	return v, nil
 }
