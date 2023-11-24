@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/andreevym/metric-collector/internal/storage"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -80,7 +81,7 @@ func (c *Client) Insert(tableName string, key string, value string) error {
 	return nil
 }
 
-func (c *Client) InsertAll(tableName string, kvMap map[string]string) error {
+func (c *Client) InsertAll(tableName string, kvMap map[string]*storage.Metric) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -89,23 +90,35 @@ func (c *Client) InsertAll(tableName string, kvMap map[string]string) error {
 		return fmt.Errorf("failed begin tx: %w", err)
 	}
 
-	stmt, err := tx.PrepareContext(
+	insStmt, err := tx.PrepareContext(
 		ctx,
 		fmt.Sprintf("INSERT INTO %s (key, value) VALUES ($1, $2)", tableName),
 	)
 	if err != nil {
 		return fmt.Errorf("failed prepare context: %w", err)
 	}
-	defer stmt.Close()
+	defer insStmt.Close()
+
+	updStmt, err := tx.PrepareContext(
+		ctx,
+		fmt.Sprintf("UPDATE %s SET value = $1 WHERE key = $2", tableName),
+	)
+	if err != nil {
+		return fmt.Errorf("failed prepare context: %w", err)
+	}
+	defer updStmt.Close()
 
 	for k, v := range kvMap {
-		_, err = stmt.ExecContext(
-			ctx,
-			k,
-			v,
-		)
-		if err != nil {
-			return fmt.Errorf("failed exec context: %w", err)
+		if v.IsExists {
+			_, err = updStmt.ExecContext(ctx, v.Value, k)
+			if err != nil {
+				return fmt.Errorf("failed exec context: %w", err)
+			}
+		} else {
+			_, err = insStmt.ExecContext(ctx, k, v.Value)
+			if err != nil {
+				return fmt.Errorf("failed exec context: %w", err)
+			}
 		}
 	}
 

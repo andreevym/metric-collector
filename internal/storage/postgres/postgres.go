@@ -28,7 +28,7 @@ func (s *PgStorage) Create(key string, val string) error {
 	return err
 }
 
-func (s *PgStorage) CreateAll(kvMap map[string]string) error {
+func (s *PgStorage) CreateAll(kvMap map[string]*storage.Metric) error {
 	s.rw.Lock()
 	err := s.dbClient.InsertAll(s.tableName, kvMap)
 	s.rw.Unlock()

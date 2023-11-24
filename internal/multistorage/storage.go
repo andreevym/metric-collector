@@ -100,7 +100,7 @@ func (storage *MetricManager) GetMetric(metricType string, metricName string) (s
 	}
 }
 
-func (storage *MetricManager) SaveMetrics(metricType string, kvMap map[string]string) error {
+func (storage *MetricManager) SaveMetrics(metricType string, kvMap map[string]*storage.Metric) error {
 	var err error
 	switch metricType {
 	case MetricTypeCounter:

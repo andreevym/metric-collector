@@ -11,7 +11,7 @@ func Store(s storage.Storage, metricName string, metricValue string) (string, er
 	return metricValue, err
 }
 
-func StoreAll(s storage.Storage, kvMap map[string]string) error {
+func StoreAll(s storage.Storage, kvMap map[string]*storage.Metric) error {
 	if len(kvMap) != 0 {
 		return s.CreateAll(kvMap)
 	}

@@ -8,7 +8,6 @@ import (
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"go.uber.org/zap"
-	"golang.org/x/exp/maps"
 )
 
 type Storage struct {
@@ -37,9 +36,11 @@ func (s *Storage) Create(key string, val string) error {
 	return nil
 }
 
-func (s *Storage) CreateAll(kvMap map[string]string) error {
+func (s *Storage) CreateAll(kvMap map[string]*storage.Metric) error {
 	s.rw.Lock()
-	maps.Copy(s.data, kvMap)
+	for k, metric := range kvMap {
+		s.data[k] = metric.Value
+	}
 	s.rw.Unlock()
 	return nil
 }
