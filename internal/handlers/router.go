@@ -13,6 +13,7 @@ func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handle
 	r.Get("/value/{metricType}/{metricName}", s.GetValueHandler)
 	r.Get("/ping", s.GetPingHandler)
 	r.Post("/update", s.PostUpdateHandler)
+	r.Post("/updates/", s.PostUpdatesHandler)
 	r.Post("/update/", s.PostUpdateHandler)
 	r.Post("/value", s.PostValueHandler)
 	r.Post("/value/", s.PostValueHandler)

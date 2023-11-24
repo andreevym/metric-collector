@@ -6,14 +6,15 @@ require (
 	github.com/avast/retry-go v3.0.0+incompatible
 	github.com/caarlos0/env v3.5.0+incompatible
 	github.com/go-chi/chi/v5 v5.0.10
+	github.com/golang/mock v1.6.0
 	github.com/jackc/pgx/v5 v5.5.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.26.0
+	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect

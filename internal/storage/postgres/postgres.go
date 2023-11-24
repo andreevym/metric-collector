@@ -28,6 +28,13 @@ func (s *PgStorage) Create(key string, val string) error {
 	return err
 }
 
+func (s *PgStorage) CreateAll(kvMap map[string]string) error {
+	s.rw.Lock()
+	err := s.dbClient.InsertAll(s.tableName, kvMap)
+	s.rw.Unlock()
+	return err
+}
+
 func (s *PgStorage) Read(key string) (string, error) {
 	r, err := s.dbClient.Select(s.tableName, key)
 	if err != nil && err.Error() == "sql: no rows in result set" {

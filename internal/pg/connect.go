@@ -80,6 +80,43 @@ func (c *Client) Insert(tableName string, key string, value string) error {
 	return nil
 }
 
+func (c *Client) InsertAll(tableName string, kvMap map[string]string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	tx, err := c.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed begin tx: %w", err)
+	}
+
+	stmt, err := tx.PrepareContext(
+		ctx,
+		fmt.Sprintf("INSERT INTO %s (key, value) VALUES ($1, $2)", tableName),
+	)
+	if err != nil {
+		return fmt.Errorf("failed prepare context: %w", err)
+	}
+	defer stmt.Close()
+
+	for k, v := range kvMap {
+		_, err = stmt.ExecContext(
+			ctx,
+			k,
+			v,
+		)
+		if err != nil {
+			return fmt.Errorf("failed exec context: %w", err)
+		}
+	}
+
+	err = tx.Commit()
+	if err != nil {
+		return fmt.Errorf("failed commit: %w", err)
+	}
+
+	return nil
+}
+
 func (c *Client) Update(
 	tableName string,
 	key string,

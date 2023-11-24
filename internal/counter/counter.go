@@ -37,6 +37,13 @@ func Store(s storage.Storage, metricName string, metricValue string) (string, er
 	return newVal, err
 }
 
+func StoreAll(s storage.Storage, kvMap map[string]string) error {
+	if len(kvMap) != 0 {
+		return s.CreateAll(kvMap)
+	}
+	return nil
+}
+
 func Validate(metricValue string) error {
 	_, err := strconv.ParseFloat(metricValue, 64)
 	return err

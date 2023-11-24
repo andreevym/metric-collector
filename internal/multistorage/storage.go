@@ -99,3 +99,35 @@ func (storage *MetricManager) GetMetric(metricType string, metricName string) (s
 		return "", fmt.Errorf("metric type '%s' not found", metricType)
 	}
 }
+
+func (storage *MetricManager) SaveMetrics(metricType string, kvMap map[string]string) error {
+	var err error
+	switch metricType {
+	case MetricTypeCounter:
+		err = counter.StoreAll(storage.counterStorage, kvMap)
+		if err != nil {
+			return err
+		}
+		if b, ok := storage.counterStorage.(Backup); ok {
+			err = b.Backup()
+			if err != nil {
+				return err
+			}
+		}
+	case MetricTypeGauge:
+		err = gauge.StoreAll(storage.gaugeStorage, kvMap)
+		if err != nil {
+			return err
+		}
+		if b, ok := storage.gaugeStorage.(Backup); ok {
+			err = b.Backup()
+			if err != nil {
+				return err
+			}
+		}
+	default:
+		return errors.New("metric type not found")
+	}
+
+	return nil
+}
