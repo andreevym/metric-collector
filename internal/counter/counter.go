@@ -10,7 +10,7 @@ import (
 
 func Store(s storage.Storage, metricName string, metricValue string) (string, error) {
 	metricValues, err := s.Read(metricName)
-	if err != nil && !errors.Is(err, storage.ErrValueNotFoun) {
+	if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
 		return "", err
 	}
 	if len(metricValues) == 0 {
