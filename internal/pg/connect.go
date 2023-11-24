@@ -3,6 +3,7 @@ package pg
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -41,38 +42,60 @@ func (c *Client) Select(tableName string, key string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	row := c.db.QueryRowContext(ctx, "SELECT value FROM ? WHERE key = ?", tableName, key)
-	var res string
-	err := row.Scan(&res)
-	if err != nil {
+	q := fmt.Sprintf("SELECT value FROM %s WHERE key = $1;", tableName)
+	rows := c.db.QueryRowContext(
+		ctx,
+		q,
+		key,
+	)
+	if err := rows.Err(); err != nil {
 		return "", err
 	}
-	err = row.Err()
-	if err != nil {
+	var val string
+	if err := rows.Scan(&val); err != nil {
 		return "", err
 	}
-	return res, nil
+	return val, nil
 }
 
 func (c *Client) Insert(tableName string, key string, value string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_, err := c.db.ExecContext(ctx, "INSERT INTO ? (key, value) VALUES (?, ?)", tableName, key, value)
+	q := fmt.Sprintf("INSERT INTO %s (key, value) VALUES ($1, $2)", tableName)
+	r, err := c.db.ExecContext(
+		ctx,
+		q,
+		key,
+		value,
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed insert %w", err)
 	}
+	affected, err := r.RowsAffected()
+	fmt.Println(affected)
+	fmt.Println(err.Error())
 
 	return nil
 }
 
-func (c *Client) Update(tableName string, key string, value string) error {
+func (c *Client) Update(
+	tableName string,
+	key string,
+	value string,
+) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_, err := c.db.ExecContext(ctx, "INSERT INTO ? (key, value) VALUES (? ?)", tableName, key, value)
+	q := fmt.Sprintf("UPDATE %s SET value = $1 WHERE key = $2", tableName)
+	_, err := c.db.ExecContext(
+		ctx,
+		q,
+		value,
+		key,
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed update %w", err)
 	}
 
 	return nil
@@ -82,9 +105,14 @@ func (c *Client) Delete(tableName string, key string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
-	_, err := c.db.ExecContext(ctx, "DELETE FROM ? WHERE key = ?", tableName, key)
+	q := fmt.Sprintf("DELETE FROM %s WHERE key = $1", tableName)
+	_, err := c.db.ExecContext(
+		ctx,
+		q,
+		key,
+	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed delete: %w", err)
 	}
 
 	return nil
@@ -96,7 +124,7 @@ func (c *Client) ApplyMigration(sql string) error {
 
 	_, err := c.db.ExecContext(ctx, sql)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed apply sql %s: %w", sql, err)
 	}
 
 	return nil

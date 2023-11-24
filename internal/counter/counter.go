@@ -15,7 +15,7 @@ func Store(s storage.Storage, metricName string, metricValue string) (string, er
 		return "", err
 	}
 	if len(metricValues) == 0 {
-		err := s.Create(metricName, metricValue)
+		err = s.Create(metricName, metricValue)
 		if err != nil {
 			return "", err
 		}
