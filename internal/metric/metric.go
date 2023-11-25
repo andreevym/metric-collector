@@ -83,7 +83,7 @@ func sendGauge(url string, m *storage.Metric) error {
 
 func sendPollCount(url string) error {
 	m := &storage.Metric{
-		ID:    PollCount,
+		ID:    "PollCount",
 		MType: storage.MTypeCounter,
 		Delta: &pollCount,
 		Value: nil,
@@ -167,34 +167,34 @@ func sendUpdateMetricsRequest(url string, metric *storage.Metric) error {
 func collectMetricsByMemStat(stats *runtime.MemStats) ([]*storage.Metric, error) {
 	metrics := make([]*storage.Metric, 0)
 
-	MustAppendGaugeMetricFloat64(metrics, RandomValue, rand.Float64())
-	MustAppendGaugeMetricUint64(metrics, Alloc, stats.Alloc)
-	MustAppendGaugeMetricUint64(metrics, BuckHashSys, stats.BuckHashSys)
-	MustAppendGaugeMetricUint64(metrics, Frees, stats.Frees)
-	MustAppendGaugeMetricFloat64(metrics, GCCPUFraction, stats.GCCPUFraction)
-	MustAppendGaugeMetricUint64(metrics, GCSys, stats.GCSys)
-	MustAppendGaugeMetricUint64(metrics, HeapAlloc, stats.HeapAlloc)
-	MustAppendGaugeMetricUint64(metrics, HeapIdle, stats.HeapIdle)
-	MustAppendGaugeMetricUint64(metrics, HeapInuse, stats.HeapInuse)
-	MustAppendGaugeMetricUint64(metrics, HeapObjects, stats.HeapObjects)
-	MustAppendGaugeMetricUint64(metrics, HeapReleased, stats.HeapReleased)
-	MustAppendGaugeMetricUint64(metrics, HeapSys, stats.HeapSys)
-	MustAppendGaugeMetricUint64(metrics, LastGC, stats.LastGC)
-	MustAppendGaugeMetricUint64(metrics, Lookups, stats.Lookups)
-	MustAppendGaugeMetricUint64(metrics, MCacheInuse, stats.MCacheInuse)
-	MustAppendGaugeMetricUint64(metrics, MCacheSys, stats.MCacheSys)
-	MustAppendGaugeMetricUint64(metrics, MSpanInuse, stats.MSpanInuse)
-	MustAppendGaugeMetricUint64(metrics, MSpanSys, stats.MSpanSys)
-	MustAppendGaugeMetricUint64(metrics, Mallocs, stats.Mallocs)
-	MustAppendGaugeMetricUint64(metrics, NextGC, stats.NextGC)
-	MustAppendGaugeMetricUint32(metrics, NumForcedGC, stats.NumForcedGC)
-	MustAppendGaugeMetricUint32(metrics, NumGC, stats.NumGC)
-	MustAppendGaugeMetricUint64(metrics, OtherSys, stats.OtherSys)
-	MustAppendGaugeMetricUint64(metrics, PauseTotalNs, stats.PauseTotalNs)
-	MustAppendGaugeMetricUint64(metrics, StackInuse, stats.StackInuse)
-	MustAppendGaugeMetricUint64(metrics, StackSys, stats.StackSys)
-	MustAppendGaugeMetricUint64(metrics, Sys, stats.Sys)
-	MustAppendGaugeMetricUint64(metrics, TotalAlloc, stats.TotalAlloc)
+	MustAppendGaugeMetricFloat64(metrics, "RandomValue", rand.Float64())
+	MustAppendGaugeMetricUint64(metrics, "Alloc", stats.Alloc)
+	MustAppendGaugeMetricUint64(metrics, "BuckHashSys", stats.BuckHashSys)
+	MustAppendGaugeMetricUint64(metrics, "Frees", stats.Frees)
+	MustAppendGaugeMetricFloat64(metrics, "GCCPUFraction", stats.GCCPUFraction)
+	MustAppendGaugeMetricUint64(metrics, "GCSys", stats.GCSys)
+	MustAppendGaugeMetricUint64(metrics, "HeapAlloc", stats.HeapAlloc)
+	MustAppendGaugeMetricUint64(metrics, "HeapIdle", stats.HeapIdle)
+	MustAppendGaugeMetricUint64(metrics, "HeapInuse", stats.HeapInuse)
+	MustAppendGaugeMetricUint64(metrics, "HeapObjects", stats.HeapObjects)
+	MustAppendGaugeMetricUint64(metrics, "HeapReleased", stats.HeapReleased)
+	MustAppendGaugeMetricUint64(metrics, "HeapSys", stats.HeapSys)
+	MustAppendGaugeMetricUint64(metrics, "LastGC", stats.LastGC)
+	MustAppendGaugeMetricUint64(metrics, "Lookups", stats.Lookups)
+	MustAppendGaugeMetricUint64(metrics, "MCacheInuse", stats.MCacheInuse)
+	MustAppendGaugeMetricUint64(metrics, "MCacheSys", stats.MCacheSys)
+	MustAppendGaugeMetricUint64(metrics, "MSpanInuse", stats.MSpanInuse)
+	MustAppendGaugeMetricUint64(metrics, "MSpanSys", stats.MSpanSys)
+	MustAppendGaugeMetricUint64(metrics, "Mallocs", stats.Mallocs)
+	MustAppendGaugeMetricUint64(metrics, "NextGC", stats.NextGC)
+	MustAppendGaugeMetricUint32(metrics, "NumForcedGC", stats.NumForcedGC)
+	MustAppendGaugeMetricUint32(metrics, "NumGC", stats.NumGC)
+	MustAppendGaugeMetricUint64(metrics, "OtherSys", stats.OtherSys)
+	MustAppendGaugeMetricUint64(metrics, "PauseTotalNs", stats.PauseTotalNs)
+	MustAppendGaugeMetricUint64(metrics, "StackInuse", stats.StackInuse)
+	MustAppendGaugeMetricUint64(metrics, "StackSys", stats.StackSys)
+	MustAppendGaugeMetricUint64(metrics, "Sys", stats.Sys)
+	MustAppendGaugeMetricUint64(metrics, "TotalAlloc", stats.TotalAlloc)
 	return metrics, nil
 }
 
