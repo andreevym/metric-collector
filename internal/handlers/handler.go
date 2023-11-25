@@ -1,18 +1,18 @@
 package handlers
 
 import (
-	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/pg"
+	"github.com/andreevym/metric-collector/internal/storage"
 )
 
 type ServiceHandlers struct {
-	metricStorage *multistorage.MetricManager
-	dbClient      *pg.Client
+	storage  storage.Storage
+	dbClient *pg.Client
 }
 
-func NewServiceHandlers(storage *multistorage.MetricManager, dbClient *pg.Client) *ServiceHandlers {
+func NewServiceHandlers(storage storage.Storage, dbClient *pg.Client) *ServiceHandlers {
 	return &ServiceHandlers{
-		metricStorage: storage,
-		dbClient:      dbClient,
+		storage:  storage,
+		dbClient: dbClient,
 	}
 }

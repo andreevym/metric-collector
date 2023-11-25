@@ -1,5 +1,0 @@
-CREATE TABLE IF NOT EXISTS counter
-(
-    key   VARCHAR(50) PRIMARY KEY,
-    value VARCHAR(50)
-);

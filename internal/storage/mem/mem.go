@@ -1,6 +1,7 @@
 package mem
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -11,9 +12,9 @@ import (
 )
 
 type Storage struct {
-	data map[string]string
-	rw   sync.RWMutex
-	opt  *BackupOptional
+	data map[string]*storage.Metric
+	sync.RWMutex
+	opt *BackupOptional
 }
 
 type BackupOptional struct {
@@ -23,49 +24,52 @@ type BackupOptional struct {
 
 func NewStorage(opt *BackupOptional) *Storage {
 	return &Storage{
-		map[string]string{},
+		map[string]*storage.Metric{},
 		sync.RWMutex{},
 		opt,
 	}
 }
 
-func (s *Storage) Create(key string, val string) error {
-	s.rw.Lock()
-	s.data[key] = val
-	s.rw.Unlock()
+func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
+	s.Lock()
+	s.data[m.ID] = m
+	s.Unlock()
 	return nil
 }
 
-func (s *Storage) CreateAll(kvMap map[string]*storage.Metric) error {
-	s.rw.Lock()
-	for k, metric := range kvMap {
-		s.data[k] = metric.Value
+func (s *Storage) CreateAll(_ context.Context, metrics map[string]*storage.MetricR) error {
+	s.Lock()
+	for _, m := range metrics {
+		s.data[m.Metric.ID] = m.Metric
 	}
-	s.rw.Unlock()
+	s.Unlock()
 	return nil
 }
 
-func (s *Storage) Read(key string) (string, error) {
-	v, ok := s.data[key]
+func (s *Storage) Read(_ context.Context, id string) (*storage.Metric, error) {
+	v, ok := s.data[id]
 	if !ok {
-		return "", fmt.Errorf("%w: not found value by key %s", storage.ErrValueNotFound, key)
+		return nil, fmt.Errorf("%w: not found value by id %s", storage.ErrValueNotFound, id)
 	}
 	return v, nil
 }
 
-func (s *Storage) Update(key string, val string) error {
-	s.rw.Lock()
-	if s.data[key] == "" {
-		return fmt.Errorf("can't update value by key, because value doesn't exists: key %s",
-			key)
+func (s *Storage) Update(_ context.Context, m *storage.Metric) error {
+	s.Lock()
+	_, ok := s.data[m.ID]
+	if !ok {
+		return fmt.Errorf(
+			"can't update value by id, because value doesn't exists: id %s",
+			m.ID,
+		)
 	}
-	s.data[key] = val
-	s.rw.Unlock()
+	s.data[m.ID] = m
+	s.Unlock()
 	return nil
 }
 
-func (s *Storage) Delete(key string) error {
-	delete(s.data, key)
+func (s *Storage) Delete(_ context.Context, id string) error {
+	delete(s.data, id)
 	return nil
 }
 

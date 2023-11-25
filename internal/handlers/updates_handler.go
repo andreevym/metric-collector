@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/multistorage"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"go.uber.org/zap"
 )
@@ -28,7 +26,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var metrics []Metrics
+	var metrics []*storage.Metric
 	err = json.Unmarshal(bytes, &metrics)
 	if err != nil {
 		logger.Log.Error("err", zap.Error(err))
@@ -36,78 +34,61 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	gauge := map[string]*storage.Metric{}
-	counter := map[string]*storage.Metric{}
-	for _, metric := range metrics {
-		if metric.MType == multistorage.MetricTypeGauge {
-			if metric.Value == nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			metricValue := fmt.Sprintf("%v", *metric.Value)
-
-			gauge[metric.ID] = &storage.Metric{
-				Value:    metricValue,
-				IsExists: false,
-			}
-		} else if metric.MType == multistorage.MetricTypeCounter {
-			if metric.Delta == nil {
-				logger.Log.Error("err", zap.Error(err))
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			isExists := true
-			addedMetricValue := strconv.FormatInt(*metric.Delta, 10)
-
-			var existsMetricValue string
-
-			cachedMetric, ok := counter[metric.ID]
-			if ok {
-				existsMetricValue = cachedMetric.Value
-			} else {
-				existsMetricValue, err = s.metricStorage.GetMetric(multistorage.MetricTypeCounter, metric.ID)
-				if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
-					logger.Log.Error("err", zap.Error(err))
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				} else if err != nil && errors.Is(err, storage.ErrValueNotFound) {
-					existsMetricValue = "0"
-					isExists = false
-				}
-			}
-
-			existsMetricVal, err := strconv.ParseInt(existsMetricValue, 10, 64)
-			if err != nil {
-				logger.Log.Error("err", zap.Error(err))
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			v, err := strconv.ParseInt(addedMetricValue, 10, 64)
-			if err != nil {
-				logger.Log.Error("err", zap.Error(err))
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			newVal := strconv.FormatInt(existsMetricVal+v, 10)
-
-			counter[metric.ID] = &storage.Metric{
-				Value:    newVal,
-				IsExists: isExists,
-			}
-		}
-	}
-
-	if len(gauge) > 0 {
-		err = s.metricStorage.SaveMetrics(multistorage.MetricTypeGauge, gauge)
-		if err != nil {
-			logger.Log.Error("err", zap.Error(err))
+	metricsR := map[string]*storage.MetricR{}
+	for _, m := range metrics {
+		foundMetric, err := s.storage.Read(r.Context(), m.ID)
+		if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
+			logger.Log.Error("failed update metric",
+				zap.Error(err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+
+		if m.MType == storage.MTypeGauge {
+			if m.Value == nil {
+				logger.Log.Error("failed update metric",
+					zap.Error(fmt.Errorf("value can't be nil for id %s", m.ID)))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			metricsR[m.ID] = &storage.MetricR{
+				Metric:   m,
+				IsExists: false,
+			}
+		} else if m.MType == storage.MTypeCounter {
+			if m.Delta == nil {
+				logger.Log.Error("err", zap.Error(fmt.Errorf("delta can't be nil for id %s", m.ID)))
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			var existsMetricValue *storage.Metric
+
+			cachedMetric, ok := metricsR[m.ID]
+			if ok {
+				existsMetricValue = cachedMetric.Metric
+			} else {
+				if foundMetric == nil {
+					metricsR[m.ID] = &storage.MetricR{
+						Metric:   m,
+						IsExists: false,
+					}
+					break
+				}
+			}
+
+			newVal := *existsMetricValue.Delta + *m.Delta
+			m.Delta = &newVal
+			metricsR[m.ID] = &storage.MetricR{
+				Metric:   m,
+				IsExists: true,
+			}
+		}
 	}
 
-	if len(counter) > 0 {
-		err = s.metricStorage.SaveMetrics(multistorage.MetricTypeCounter, counter)
+	if len(metricsR) > 0 {
+		err = s.storage.CreateAll(r.Context(), metricsR)
 		if err != nil {
 			logger.Log.Error("err", zap.Error(err))
 			w.WriteHeader(http.StatusBadRequest)

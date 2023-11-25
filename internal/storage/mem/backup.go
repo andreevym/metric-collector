@@ -6,13 +6,14 @@ import (
 	"os"
 
 	"github.com/andreevym/metric-collector/internal/logger"
+	"github.com/andreevym/metric-collector/internal/storage"
 )
 
-func Load(filename string) (map[string]string, error) {
+func Load(filename string) (map[string]*storage.Metric, error) {
 	_, err := os.Stat(filename)
 	if err != nil {
 		logger.Log.Error(err.Error())
-		return map[string]string{}, nil
+		return map[string]*storage.Metric{}, nil
 	}
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
@@ -20,7 +21,7 @@ func Load(filename string) (map[string]string, error) {
 		return nil, fmt.Errorf("can't read backup file %s: %w", filename, err)
 	}
 	if len(bytes) == 0 {
-		return map[string]string{}, nil
+		return map[string]*storage.Metric{}, nil
 	}
 
 	m, err := marshal(bytes)
@@ -31,7 +32,7 @@ func Load(filename string) (map[string]string, error) {
 	return m, nil
 }
 
-func Save(filename string, data map[string]string) error {
+func Save(filename string, data map[string]*storage.Metric) error {
 	file, err := os.Create(filename)
 	if err != nil {
 		logger.Log.Error(err.Error())
@@ -53,10 +54,10 @@ func Save(filename string, data map[string]string) error {
 }
 
 type file struct {
-	Storage map[string]string `json:"storage"`
+	Storage map[string]*storage.Metric `json:"storage"`
 }
 
-func marshal(data []byte) (map[string]string, error) {
+func marshal(data []byte) (map[string]*storage.Metric, error) {
 	v := file{}
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -66,6 +67,6 @@ func marshal(data []byte) (map[string]string, error) {
 	return v.Storage, nil
 }
 
-func unmarshal(m map[string]string) ([]byte, error) {
+func unmarshal(m map[string]*storage.Metric) ([]byte, error) {
 	return json.Marshal(file{m})
 }

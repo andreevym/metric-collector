@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/multistorage"
+	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
@@ -17,13 +17,6 @@ const (
 	UpdateMetricContentType = "application/json"
 	ValueMetricContentType  = "application/json"
 )
-
-type Metrics struct {
-	ID    string   `json:"id"`              // Имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // Значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
-}
 
 // PostUpdateHandler method for insert or update metrics
 // example request url: http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
@@ -35,71 +28,67 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		logger.Log.Error("error", zap.Error(err))
 	}
 
-	var metricName string
-	var metricType string
-	var metricValue string
-
+	m := &storage.Metric{}
 	if len(bytes) > 0 {
-		metrics := Metrics{}
-		err := json.Unmarshal(bytes, &metrics)
+		err = json.Unmarshal(bytes, &m)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
-		if metrics.MType == multistorage.MetricTypeGauge {
-			if metrics.Value == nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			metricValue = fmt.Sprintf("%v", *metrics.Value)
-		} else if metrics.MType == multistorage.MetricTypeCounter {
-			if metrics.Delta == nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			metricValue = strconv.FormatInt(*metrics.Delta, 10)
-		}
-
-		metricType = metrics.MType
-		metricName = metrics.ID
 	} else {
-		metricType = chi.URLParam(r, "metricType")
-		metricName = chi.URLParam(r, "metricName")
-		metricValue = chi.URLParam(r, "metricValue")
+		m.MType = storage.MType(chi.URLParam(r, "metricType"))
+		m.ID = chi.URLParam(r, "metricName")
+		if m.MType == storage.MTypeCounter {
+			v := chi.URLParam(r, "metricValue")
+			delta, err := strconv.ParseInt(v, 10, 64)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			m.Delta = &delta
+		} else if m.MType == storage.MTypeGauge {
+			v := chi.URLParam(r, "metricValue")
+			value, err := strconv.ParseFloat(v, 64)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			m.Value = &value
+		}
 	}
 
-	newVal, err := s.metricStorage.SaveMetric(metricName, metricType, metricValue)
-	if err != nil {
+	foundValue, err := s.storage.Read(r.Context(), m.ID)
+	if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
+		logger.Log.Error("failed update metric",
+			zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	resp := Metrics{
-		ID:    metricName,
-		MType: metricType,
-	}
-	if resp.MType == multistorage.MetricTypeGauge {
-		v, err := strconv.ParseFloat(newVal, 64)
+	if foundValue == nil {
+		err = s.storage.Create(r.Context(), m)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		resp.Value = &v
-	} else if resp.MType == multistorage.MetricTypeCounter {
-		v, err := strconv.ParseInt(newVal, 10, 64)
+	} else {
+		if m.MType == storage.MTypeCounter {
+			newDelta := *m.Delta + *foundValue.Delta
+			m.Delta = &newDelta
+		}
+		err = s.storage.Update(r.Context(), m)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		resp.Delta = &v
 	}
-	bytesResp, err := json.Marshal(&resp)
+
+	bytes, err = json.Marshal(&m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	_, err = w.Write(bytesResp)
+	_, err = w.Write(bytes)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
