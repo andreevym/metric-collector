@@ -32,6 +32,9 @@ func NewStorage(opt *BackupOptional) *Storage {
 
 func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
 	s.Lock()
+	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
+	}
 	s.data[m.ID] = m
 	s.Unlock()
 	return nil
@@ -40,6 +43,9 @@ func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
 func (s *Storage) CreateAll(_ context.Context, metrics map[string]*storage.MetricR) error {
 	s.Lock()
 	for _, m := range metrics {
+		if m.Metric.MType != storage.MTypeGauge && m.Metric.MType != storage.MTypeCounter {
+			return fmt.Errorf("metric type %s is not valid for ID %s", m.Metric.MType, m.Metric.ID)
+		}
 		s.data[m.Metric.ID] = m.Metric
 	}
 	s.Unlock()
@@ -56,6 +62,9 @@ func (s *Storage) Read(_ context.Context, id string) (*storage.Metric, error) {
 
 func (s *Storage) Update(_ context.Context, m *storage.Metric) error {
 	s.Lock()
+	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
+	}
 	_, ok := s.data[m.ID]
 	if !ok {
 		return fmt.Errorf(

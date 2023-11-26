@@ -57,6 +57,11 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
+	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	foundValue, err := s.storage.Read(r.Context(), m.ID)
 	if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
 		logger.Log.Error("failed update metric",

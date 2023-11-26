@@ -68,6 +68,10 @@ func (c *Client) Insert(ctx context.Context, m *storage.Metric) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
+	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
+	}
+
 	if m.Delta == nil && m.Value == nil {
 		return errors.New("metric can't have nil delta and nil value")
 	}
@@ -118,6 +122,10 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.Metric
 	defer updStmt.Close()
 
 	for _, m := range metrics {
+		if m.Metric.MType != storage.MTypeGauge && m.Metric.MType != storage.MTypeCounter {
+			return fmt.Errorf("metric type %s is not valid for ID %s", m.Metric.MType, m.Metric.ID)
+		}
+
 		if m.Metric.Delta == nil && m.Metric.Value == nil {
 			return errors.New("metric can't have nil delta and nil value")
 		}
@@ -160,6 +168,10 @@ func (c *Client) Update(
 ) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
+
+	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
+	}
 
 	if m.Delta == nil && m.Value == nil {
 		return errors.New("metric can't have nil delta and nil value")
