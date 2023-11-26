@@ -1,31 +1,66 @@
 package handlers
 
 import (
-	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
 
+	"github.com/andreevym/metric-collector/internal/logger"
+	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/go-chi/chi/v5"
 )
 
 // GetValueHandler method return metric value by metric type and metric name
 // example request url: http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
 func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request) {
-	//metricType := chi.URLParam(r, "metricType")
+	metricType := chi.URLParam(r, "metricType")
+	if metricType != string(storage.MTypeGauge) && metricType != string(storage.MTypeCounter) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	id := chi.URLParam(r, "metricName")
 
 	v, err := s.storage.Read(r.Context(), id)
 	if err != nil || v == nil {
 		w.WriteHeader(http.StatusNotFound)
+		return
 	} else {
-		bytes, err := json.Marshal(v)
-		if err != nil {
+		var res string
+		switch v.MType {
+		case storage.MTypeGauge:
+			if v.Delta == nil {
+				logger.Log.Error("delta can't be nil")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			res = fmt.Sprintf("%d", v.Delta)
+			_, err = io.WriteString(w, res)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			} else {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		case storage.MTypeCounter:
+			if v.Value == nil {
+				logger.Log.Error("value can't be nil")
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+			res = fmt.Sprintf("%f", v.Value)
+			_, err = io.WriteString(w, res)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			} else {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		default:
 			w.WriteHeader(http.StatusBadRequest)
-		}
-		_, err = w.Write(bytes)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			w.WriteHeader(http.StatusOK)
+			return
 		}
 	}
 }

@@ -15,16 +15,14 @@ type MetricR struct {
 	IsExists bool
 }
 
-type MType string
-
 const (
-	MTypeGauge   MType = "gauge"
-	MTypeCounter MType = "counter"
+	MTypeGauge   string = "gauge"
+	MTypeCounter string = "counter"
 )
 
 type Metric struct {
 	ID    string   `json:"id"`              // Имя метрики
-	MType MType    `json:"type"`            // параметр, принимающий значение gauge или counter
+	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
 	Delta *int64   `json:"delta,omitempty"` // Значение метрики в случае передачи counter
 	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
 }

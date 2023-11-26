@@ -36,7 +36,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	} else {
-		m.MType = storage.MType(chi.URLParam(r, "metricType"))
+		m.MType = chi.URLParam(r, "metricType")
 		m.ID = chi.URLParam(r, "metricName")
 		if m.MType == storage.MTypeCounter {
 			v := chi.URLParam(r, "metricValue")
