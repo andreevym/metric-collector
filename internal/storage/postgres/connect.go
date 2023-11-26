@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -63,17 +64,20 @@ func (c *Client) SelectByID(ctx context.Context, id string) (*storage.Metric, er
 	return &metrics[0], nil
 }
 
-func (c *Client) Insert(ctx context.Context, metrics *storage.Metric) error {
+func (c *Client) Insert(ctx context.Context, m *storage.Metric) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
+	if m.Delta == nil && m.Value == nil {
+		return errors.New("metric can't have nil delta and nil value")
+	}
 	r, err := c.db.ExecContext(
 		rCtx,
 		"INSERT INTO metric (id, type, delta, value) VALUES ($1, $2, $3, $4)",
-		metrics.ID,
-		metrics.MType,
-		metrics.Delta,
-		metrics.Value,
+		m.ID,
+		m.MType,
+		m.Delta,
+		m.Value,
 	)
 	if err != nil {
 		return fmt.Errorf("failed insert %w", err)
@@ -114,6 +118,10 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.Metric
 	defer updStmt.Close()
 
 	for _, m := range metrics {
+		if m.Metric.Delta == nil && m.Metric.Value == nil {
+			return errors.New("metric can't have nil delta and nil value")
+		}
+
 		if m.IsExists {
 			_, err = updStmt.ExecContext(
 				rCtx,
@@ -148,17 +156,20 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.Metric
 
 func (c *Client) Update(
 	ctx context.Context,
-	metric *storage.Metric,
+	m *storage.Metric,
 ) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
+	if m.Delta == nil && m.Value == nil {
+		return errors.New("metric can't have nil delta and nil value")
+	}
 	_, err := c.db.ExecContext(
 		rCtx,
 		"UPDATE metric SET delta = $2, value = $3 WHERE id = $1",
-		metric.ID,
-		metric.Delta,
-		metric.Value,
+		m.ID,
+		m.Delta,
+		m.Value,
 	)
 	if err != nil {
 		return fmt.Errorf("failed update %w", err)
