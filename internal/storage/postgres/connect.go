@@ -1,8 +1,7 @@
-package pg
+package postgres
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -44,13 +43,24 @@ func (c *Client) SelectByID(ctx context.Context, id string) (*storage.Metric, er
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	metric := storage.Metric{}
-	err := c.db.GetContext(rCtx, &metric, "SELECT * FROM metric WHERE id = $1;", id)
+	metrics := []storage.Metric{}
+	err := c.db.SelectContext(
+		rCtx,
+		&metrics,
+		"SELECT id as \"id\", type as \"mtype\", delta as \"delta\", value as \"value\" FROM metric WHERE id = $1;",
+		id,
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed execute select: %w", err)
 	}
+	if len(metrics) == 0 {
+		return nil, storage.ErrValueNotFound
+	}
+	if len(metrics) > 1 {
+		return nil, fmt.Errorf("something goung wrong, expect single value, but found %d", len(metrics))
+	}
 
-	return &metric, nil
+	return &metrics[0], nil
 }
 
 func (c *Client) Insert(ctx context.Context, metrics *storage.Metric) error {
@@ -59,11 +69,11 @@ func (c *Client) Insert(ctx context.Context, metrics *storage.Metric) error {
 
 	r, err := c.db.ExecContext(
 		rCtx,
-		"INSERT INTO metric (id, type, delta, value) VALUES (@id, @type, @delta, @value)",
-		sql.Named("id", metrics.ID),
-		sql.Named("type", metrics.MType),
-		sql.Named("delta", metrics.Delta),
-		sql.Named("value", metrics.Value),
+		"INSERT INTO metric (id, type, delta, value) VALUES ($1, $2, $3, $4)",
+		metrics.ID,
+		metrics.MType,
+		metrics.Delta,
+		metrics.Value,
 	)
 	if err != nil {
 		return fmt.Errorf("failed insert %w", err)
@@ -76,7 +86,7 @@ func (c *Client) Insert(ctx context.Context, metrics *storage.Metric) error {
 	return nil
 }
 
-func (c *Client) InsertAll(ctx context.Context, metrics map[string]*storage.MetricR) error {
+func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.MetricR) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -87,7 +97,7 @@ func (c *Client) InsertAll(ctx context.Context, metrics map[string]*storage.Metr
 
 	insStmt, err := tx.PrepareContext(
 		rCtx,
-		"INSERT INTO metric (id, type, delta, value) VALUES (@id, @type, @delta, @value)",
+		"INSERT INTO metric (id, type, delta, value) VALUES ($1, $2, $3, $4)",
 	)
 	if err != nil {
 		return fmt.Errorf("failed prepare context: %w", err)
@@ -96,7 +106,7 @@ func (c *Client) InsertAll(ctx context.Context, metrics map[string]*storage.Metr
 
 	updStmt, err := tx.PrepareContext(
 		rCtx,
-		"UPDATE metric SET delta = @delta, value = @value WHERE id = @id",
+		"UPDATE metric SET delta = $2, value = $3 WHERE id = $1",
 	)
 	if err != nil {
 		return fmt.Errorf("failed prepare context: %w", err)
@@ -107,9 +117,9 @@ func (c *Client) InsertAll(ctx context.Context, metrics map[string]*storage.Metr
 		if m.IsExists {
 			_, err = updStmt.ExecContext(
 				rCtx,
-				sql.Named("id", m.Metric.ID),
-				sql.Named("delta", m.Metric.Delta),
-				sql.Named("value", m.Metric.Value),
+				m.Metric.ID,
+				m.Metric.Delta,
+				m.Metric.Value,
 			)
 			if err != nil {
 				return fmt.Errorf("failed exec context: %w", err)
@@ -117,10 +127,10 @@ func (c *Client) InsertAll(ctx context.Context, metrics map[string]*storage.Metr
 		} else {
 			_, err = insStmt.ExecContext(
 				rCtx,
-				sql.Named("id", m.Metric.ID),
-				sql.Named("type", m.Metric.MType),
-				sql.Named("delta", m.Metric.Delta),
-				sql.Named("value", m.Metric.Value),
+				m.Metric.ID,
+				m.Metric.MType,
+				m.Metric.Delta,
+				m.Metric.Value,
 			)
 			if err != nil {
 				return fmt.Errorf("failed exec context: %w", err)
@@ -145,10 +155,10 @@ func (c *Client) Update(
 
 	_, err := c.db.ExecContext(
 		rCtx,
-		"UPDATE metric SET delta = @delta, value = @value WHERE id = @id",
-		sql.Named("id", metric.ID),
-		sql.Named("delta", metric.Delta),
-		sql.Named("value", metric.Value),
+		"UPDATE metric SET delta = $2, value = $3 WHERE id = $1",
+		metric.ID,
+		metric.Delta,
+		metric.Value,
 	)
 	if err != nil {
 		return fmt.Errorf("failed update %w", err)

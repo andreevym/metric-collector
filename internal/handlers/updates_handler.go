@@ -68,18 +68,21 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 			cachedMetric, ok := metricsR[m.ID]
 			if ok {
 				existsMetricValue = cachedMetric.Metric
-			} else {
-				if foundMetric == nil {
-					metricsR[m.ID] = &storage.MetricR{
-						Metric:   m,
-						IsExists: false,
-					}
-					break
+			} else if foundMetric == nil {
+				metricsR[m.ID] = &storage.MetricR{
+					Metric:   m,
+					IsExists: false,
 				}
+				break
+			} else if foundMetric != nil {
+				existsMetricValue = foundMetric
 			}
 
-			newVal := *existsMetricValue.Delta + *m.Delta
-			m.Delta = &newVal
+			if existsMetricValue != nil {
+				newVal := *existsMetricValue.Delta + *m.Delta
+				m.Delta = &newVal
+			}
+
 			metricsR[m.ID] = &storage.MetricR{
 				Metric:   m,
 				IsExists: true,

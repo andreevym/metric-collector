@@ -1,16 +1,16 @@
 package handlers
 
 import (
-	"github.com/andreevym/metric-collector/internal/pg"
 	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/postgres"
 )
 
 type ServiceHandlers struct {
 	storage  storage.Storage
-	dbClient *pg.Client
+	dbClient *postgres.Client
 }
 
-func NewServiceHandlers(storage storage.Storage, dbClient *pg.Client) *ServiceHandlers {
+func NewServiceHandlers(storage storage.Storage, dbClient *postgres.Client) *ServiceHandlers {
 	return &ServiceHandlers{
 		storage:  storage,
 		dbClient: dbClient,

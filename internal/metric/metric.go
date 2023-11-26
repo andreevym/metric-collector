@@ -51,17 +51,19 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 			logger.Log.Error("failed to collect metrics by mem stat", zap.Error(err))
 			break
 		}
-		err = sendPollCount(url)
-		if err != nil {
-			logger.Log.Error("failed to send counter request to server", zap.Error(err))
-			break
+
+		metricPollCount := &storage.Metric{
+			ID:    "PollCount",
+			MType: storage.MTypeCounter,
+			Delta: &pollCount,
+			Value: nil,
 		}
-		for _, m := range collectedMetrics {
-			err = sendGauge(url, m)
-			if err != nil {
-				logger.Log.Error("failed to send gauge request to server", zap.Error(err))
-				break
-			}
+		collectedMetrics = append(collectedMetrics, metricPollCount)
+
+		err = sendUpdateMetricsRequest(url, collectedMetrics)
+		if err != nil {
+			logger.Log.Error("failed to send gauge request to server", zap.Error(err))
+			break
 		}
 	}
 }
@@ -76,22 +78,7 @@ func pollLastMemStatByTicker(ticker *time.Ticker) {
 	}
 }
 
-func sendGauge(url string, m *storage.Metric) error {
-	m.Delta = nil
-	return sendUpdateMetricsRequest(url, m)
-}
-
-func sendPollCount(url string) error {
-	m := &storage.Metric{
-		ID:    "PollCount",
-		MType: storage.MTypeCounter,
-		Delta: &pollCount,
-		Value: nil,
-	}
-	return sendUpdateMetricsRequest(url, m)
-}
-
-func sendUpdateMetricsRequest(url string, metric *storage.Metric) error {
+func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 	b, err := json.Marshal(metric)
 	if err != nil {
 		logger.Log.Error("failed to send metric: matshal request body", zap.Error(err))
@@ -106,7 +93,7 @@ func sendUpdateMetricsRequest(url string, metric *storage.Metric) error {
 			}
 			request, err := http.NewRequest(
 				http.MethodPost,
-				fmt.Sprintf("%s/update", url),
+				fmt.Sprintf("%s/updates/", url),
 				bytes.NewBuffer(compressedBytes),
 			)
 			if err != nil {

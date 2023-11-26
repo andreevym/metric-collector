@@ -12,7 +12,6 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/middleware"
-	"github.com/andreevym/metric-collector/internal/pg"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/postgres"
@@ -23,7 +22,7 @@ func Start(cfg *serverconfig.ServerConfig) error {
 	ctx := context.Background()
 
 	var metricStorage storage.Storage
-	var pgClient *pg.Client
+	var pgClient *postgres.Client
 	var err error
 
 	if cfg.DatabaseDsn == "" {
@@ -41,7 +40,7 @@ func Start(cfg *serverconfig.ServerConfig) error {
 
 		metricStorage = memMetricStorage
 	} else {
-		pgClient, err = pg.NewClient(cfg.DatabaseDsn)
+		pgClient, err = postgres.NewClient(cfg.DatabaseDsn)
 		if err != nil {
 			return fmt.Errorf("can't create database client: %w", err)
 		}
