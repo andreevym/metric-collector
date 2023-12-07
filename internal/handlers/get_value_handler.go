@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
@@ -34,7 +34,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			res = fmt.Sprintf("%d", v.Delta)
+			res = strconv.FormatInt(*v.Delta, 10)
 			_, err = io.WriteString(w, res)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -49,7 +49,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			res = fmt.Sprintf("%f", v.Value)
+			res := strconv.FormatFloat(*v.Value, 'f', -1, 64)
 			_, err = io.WriteString(w, res)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
