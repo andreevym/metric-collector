@@ -37,6 +37,7 @@ func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
 	}
 	s.data[m.ID+m.MType] = m
 	s.Unlock()
+	s.Backup()
 	return nil
 }
 
@@ -49,6 +50,7 @@ func (s *Storage) CreateAll(_ context.Context, metrics map[string]*storage.Metri
 		s.data[m.Metric.ID+m.Metric.MType] = m.Metric
 	}
 	s.Unlock()
+	s.Backup()
 	return nil
 }
 
@@ -74,6 +76,7 @@ func (s *Storage) Update(_ context.Context, m *storage.Metric) error {
 	}
 	s.data[m.ID+m.MType] = m
 	s.Unlock()
+	s.Backup()
 	return nil
 }
 
