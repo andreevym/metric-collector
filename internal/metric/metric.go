@@ -59,7 +59,6 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 			Value: nil,
 		}
 		collectedMetrics = append(collectedMetrics, metricPollCount)
-
 		err = sendUpdateMetricsRequest(url, collectedMetrics)
 		if err != nil {
 			logger.Log.Error("failed to send gauge request to server", zap.Error(err))
@@ -152,39 +151,38 @@ func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 
 func collectMetricsByMemStat(stats *runtime.MemStats) ([]*storage.Metric, error) {
 	metrics := make([]*storage.Metric, 0)
-
-	MustAppendGaugeMetricFloat64(metrics, "RandomValue", rand.Float64())
-	MustAppendGaugeMetricUint64(metrics, "Alloc", stats.Alloc)
-	MustAppendGaugeMetricUint64(metrics, "BuckHashSys", stats.BuckHashSys)
-	MustAppendGaugeMetricUint64(metrics, "Frees", stats.Frees)
-	MustAppendGaugeMetricFloat64(metrics, "GCCPUFraction", stats.GCCPUFraction)
-	MustAppendGaugeMetricUint64(metrics, "GCSys", stats.GCSys)
-	MustAppendGaugeMetricUint64(metrics, "HeapAlloc", stats.HeapAlloc)
-	MustAppendGaugeMetricUint64(metrics, "HeapIdle", stats.HeapIdle)
-	MustAppendGaugeMetricUint64(metrics, "HeapInuse", stats.HeapInuse)
-	MustAppendGaugeMetricUint64(metrics, "HeapObjects", stats.HeapObjects)
-	MustAppendGaugeMetricUint64(metrics, "HeapReleased", stats.HeapReleased)
-	MustAppendGaugeMetricUint64(metrics, "HeapSys", stats.HeapSys)
-	MustAppendGaugeMetricUint64(metrics, "LastGC", stats.LastGC)
-	MustAppendGaugeMetricUint64(metrics, "Lookups", stats.Lookups)
-	MustAppendGaugeMetricUint64(metrics, "MCacheInuse", stats.MCacheInuse)
-	MustAppendGaugeMetricUint64(metrics, "MCacheSys", stats.MCacheSys)
-	MustAppendGaugeMetricUint64(metrics, "MSpanInuse", stats.MSpanInuse)
-	MustAppendGaugeMetricUint64(metrics, "MSpanSys", stats.MSpanSys)
-	MustAppendGaugeMetricUint64(metrics, "Mallocs", stats.Mallocs)
-	MustAppendGaugeMetricUint64(metrics, "NextGC", stats.NextGC)
-	MustAppendGaugeMetricUint32(metrics, "NumForcedGC", stats.NumForcedGC)
-	MustAppendGaugeMetricUint32(metrics, "NumGC", stats.NumGC)
-	MustAppendGaugeMetricUint64(metrics, "OtherSys", stats.OtherSys)
-	MustAppendGaugeMetricUint64(metrics, "PauseTotalNs", stats.PauseTotalNs)
-	MustAppendGaugeMetricUint64(metrics, "StackInuse", stats.StackInuse)
-	MustAppendGaugeMetricUint64(metrics, "StackSys", stats.StackSys)
-	MustAppendGaugeMetricUint64(metrics, "Sys", stats.Sys)
-	MustAppendGaugeMetricUint64(metrics, "TotalAlloc", stats.TotalAlloc)
+	metrics = MustAppendGaugeMetricFloat64(metrics, "RandomValue", rand.Float64())
+	metrics = MustAppendGaugeMetricUint64(metrics, "Alloc", stats.Alloc)
+	metrics = MustAppendGaugeMetricUint64(metrics, "BuckHashSys", stats.BuckHashSys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "Frees", stats.Frees)
+	metrics = MustAppendGaugeMetricFloat64(metrics, "GCCPUFraction", stats.GCCPUFraction)
+	metrics = MustAppendGaugeMetricUint64(metrics, "GCSys", stats.GCSys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "HeapAlloc", stats.HeapAlloc)
+	metrics = MustAppendGaugeMetricUint64(metrics, "HeapIdle", stats.HeapIdle)
+	metrics = MustAppendGaugeMetricUint64(metrics, "HeapInuse", stats.HeapInuse)
+	metrics = MustAppendGaugeMetricUint64(metrics, "HeapObjects", stats.HeapObjects)
+	metrics = MustAppendGaugeMetricUint64(metrics, "HeapReleased", stats.HeapReleased)
+	metrics = MustAppendGaugeMetricUint64(metrics, "HeapSys", stats.HeapSys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "LastGC", stats.LastGC)
+	metrics = MustAppendGaugeMetricUint64(metrics, "Lookups", stats.Lookups)
+	metrics = MustAppendGaugeMetricUint64(metrics, "MCacheInuse", stats.MCacheInuse)
+	metrics = MustAppendGaugeMetricUint64(metrics, "MCacheSys", stats.MCacheSys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "MSpanInuse", stats.MSpanInuse)
+	metrics = MustAppendGaugeMetricUint64(metrics, "MSpanSys", stats.MSpanSys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "Mallocs", stats.Mallocs)
+	metrics = MustAppendGaugeMetricUint64(metrics, "NextGC", stats.NextGC)
+	metrics = MustAppendGaugeMetricUint32(metrics, "NumForcedGC", stats.NumForcedGC)
+	metrics = MustAppendGaugeMetricUint32(metrics, "NumGC", stats.NumGC)
+	metrics = MustAppendGaugeMetricUint64(metrics, "OtherSys", stats.OtherSys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "PauseTotalNs", stats.PauseTotalNs)
+	metrics = MustAppendGaugeMetricUint64(metrics, "StackInuse", stats.StackInuse)
+	metrics = MustAppendGaugeMetricUint64(metrics, "StackSys", stats.StackSys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "Sys", stats.Sys)
+	metrics = MustAppendGaugeMetricUint64(metrics, "TotalAlloc", stats.TotalAlloc)
 	return metrics, nil
 }
 
-func MustAppendGaugeMetricUint64(metrics []*storage.Metric, id string, v uint64) {
+func MustAppendGaugeMetricUint64(metrics []*storage.Metric, id string, v uint64) []*storage.Metric {
 	f, err := strconv.ParseFloat(fmt.Sprintf("%v", v), 64)
 	if err != nil {
 		panic(err)
@@ -194,9 +192,10 @@ func MustAppendGaugeMetricUint64(metrics []*storage.Metric, id string, v uint64)
 		MType: storage.MTypeGauge,
 		Value: &f,
 	})
+	return metrics
 }
 
-func MustAppendGaugeMetricUint32(metrics []*storage.Metric, id string, v uint32) {
+func MustAppendGaugeMetricUint32(metrics []*storage.Metric, id string, v uint32) []*storage.Metric {
 	f, err := strconv.ParseFloat(fmt.Sprintf("%v", v), 32)
 	if err != nil {
 		panic(err)
@@ -206,12 +205,14 @@ func MustAppendGaugeMetricUint32(metrics []*storage.Metric, id string, v uint32)
 		MType: storage.MTypeGauge,
 		Value: &f,
 	})
+	return metrics
 }
 
-func MustAppendGaugeMetricFloat64(metrics []*storage.Metric, id string, f float64) {
+func MustAppendGaugeMetricFloat64(metrics []*storage.Metric, id string, f float64) []*storage.Metric {
 	metrics = append(metrics, &storage.Metric{
 		ID:    id,
 		MType: storage.MTypeGauge,
 		Value: &f,
 	})
+	return metrics
 }
