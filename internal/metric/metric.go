@@ -27,7 +27,6 @@ const (
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
 	// при каждом обновлении метрики из пакета runtime (на каждый pollInterval — см. ниже).
-	pollCount    int64
 	lastMemStats *runtime.MemStats
 )
 
@@ -52,10 +51,11 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 			break
 		}
 
+		i := int64(1)
 		metricPollCount := &storage.Metric{
 			ID:    "PollCount",
 			MType: storage.MTypeCounter,
-			Delta: &pollCount,
+			Delta: &i,
 			Value: nil,
 		}
 		collectedMetrics = append(collectedMetrics, metricPollCount)
@@ -70,11 +70,10 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 
 func pollLastMemStatByTicker(ticker *time.Ticker) {
 	for a := range ticker.C {
-		pollCount++
 		memStats := runtime.MemStats{}
 		runtime.ReadMemStats(&memStats)
 		lastMemStats = &memStats
-		logger.Log.Info("+ metric\n", zap.Int64("pollCount", pollCount), zap.String("ticker", a.String()))
+		logger.Log.Info("+ metric\n", zap.String("ticker", a.String()))
 	}
 }
 
