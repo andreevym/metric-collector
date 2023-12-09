@@ -103,11 +103,6 @@ func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 			request.Header.Set("Content-Encoding", compressor.ContentEncoding)
 			resp, err := http.DefaultClient.Do(request)
 			if err != nil {
-				logger.Log.Error(
-					"send request error",
-					zap.String("url", url),
-					zap.Error(err),
-				)
 				return err
 			}
 			if resp != nil {
@@ -140,7 +135,8 @@ func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 	)
 	if err != nil {
 		logger.Log.Error(
-			"retry error",
+			"send request error",
+			zap.String("url", url),
 			zap.Error(err),
 		)
 		return err
