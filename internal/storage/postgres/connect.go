@@ -40,7 +40,7 @@ func (c *Client) Ping() error {
 	return nil
 }
 
-func (c *Client) SelectByID(ctx context.Context, id string) (*storage.Metric, error) {
+func (c *Client) SelectByIDAndType(ctx context.Context, id string, mType string) (*storage.Metric, error) {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -48,8 +48,10 @@ func (c *Client) SelectByID(ctx context.Context, id string) (*storage.Metric, er
 	err := c.db.SelectContext(
 		rCtx,
 		&metrics,
-		"SELECT id as \"id\", type as \"mtype\", delta as \"delta\", value as \"value\" FROM metric WHERE id = $1;",
+		"SELECT id as \"id\", type as \"mtype\", delta as \"delta\", value as \"value\" "+
+			"FROM metric WHERE id = $1 and type = $2;",
 		id,
+		mType,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed execute select: %w", err)
@@ -114,7 +116,7 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.Metric
 
 	updStmt, err := tx.PrepareContext(
 		rCtx,
-		"UPDATE metric SET delta = $2, value = $3 WHERE id = $1",
+		"UPDATE metric SET delta = $2, value = $3 WHERE id = $1 and type = $4",
 	)
 	if err != nil {
 		return fmt.Errorf("failed prepare context: %w", err)
@@ -136,6 +138,7 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.Metric
 				m.Metric.ID,
 				m.Metric.Delta,
 				m.Metric.Value,
+				m.Metric.MType,
 			)
 			if err != nil {
 				return fmt.Errorf("failed exec context: %w", err)
@@ -178,10 +181,11 @@ func (c *Client) Update(
 	}
 	_, err := c.db.ExecContext(
 		rCtx,
-		"UPDATE metric SET delta = $2, value = $3 WHERE id = $1",
+		"UPDATE metric SET delta = $2, value = $3 WHERE id = $1 and type = $4",
 		m.ID,
 		m.Delta,
 		m.Value,
+		m.MType,
 	)
 	if err != nil {
 		return fmt.Errorf("failed update %w", err)
@@ -190,11 +194,11 @@ func (c *Client) Update(
 	return nil
 }
 
-func (c *Client) Delete(ctx context.Context, id string) error {
+func (c *Client) Delete(ctx context.Context, id string, mType string) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	_, err := c.db.ExecContext(rCtx, "DELETE FROM metric WHERE key = $1", id)
+	_, err := c.db.ExecContext(rCtx, "DELETE FROM metric WHERE key = $1 and type = $2", id, mType)
 	if err != nil {
 		return fmt.Errorf("failed delete: %w", err)
 	}

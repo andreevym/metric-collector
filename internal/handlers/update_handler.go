@@ -62,7 +62,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	foundValue, err := s.storage.Read(r.Context(), m.ID)
+	foundValue, err := s.storage.Read(r.Context(), m.ID, m.MType)
 	if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
 		logger.Log.Error("failed update metric",
 			zap.Error(err))

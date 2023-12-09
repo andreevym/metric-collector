@@ -33,8 +33,8 @@ func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]*storage.M
 	return err
 }
 
-func (s *PgStorage) Read(ctx context.Context, id string) (*storage.Metric, error) {
-	r, err := s.client.SelectByID(ctx, id)
+func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage.Metric, error) {
+	r, err := s.client.SelectByIDAndType(ctx, id, mType)
 	if err != nil && err.Error() == "sql: no rows in result set" {
 		return nil, storage.ErrValueNotFound
 	}
@@ -48,6 +48,6 @@ func (s *PgStorage) Update(ctx context.Context, m *storage.Metric) error {
 	return err
 }
 
-func (s *PgStorage) Delete(ctx context.Context, id string) error {
-	return s.client.Delete(ctx, id)
+func (s *PgStorage) Delete(ctx context.Context, id string, mType string) error {
+	return s.client.Delete(ctx, id, mType)
 }

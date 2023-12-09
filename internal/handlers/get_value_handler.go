@@ -14,14 +14,14 @@ import (
 // example request url: http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
 func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
-	if metricType != string(storage.MTypeGauge) && metricType != string(storage.MTypeCounter) {
+	if metricType != storage.MTypeGauge && metricType != storage.MTypeCounter {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	id := chi.URLParam(r, "metricName")
 
-	v, err := s.storage.Read(r.Context(), id)
+	v, err := s.storage.Read(r.Context(), id, metricType)
 	if err != nil || v == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return

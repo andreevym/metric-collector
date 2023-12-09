@@ -36,7 +36,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 
 	metricsR := map[string]*storage.MetricR{}
 	for _, m := range metrics {
-		foundMetric, err := s.storage.Read(r.Context(), m.ID)
+		foundMetric, err := s.storage.Read(r.Context(), m.ID, m.MType)
 		if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
 			logger.Log.Error("failed update metric",
 				zap.Error(err))
@@ -74,7 +74,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 					IsExists: false,
 				}
 				break
-			} else if foundMetric != nil {
+			} else {
 				existsMetricValue = foundMetric
 			}
 

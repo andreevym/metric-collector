@@ -5,9 +5,9 @@ import "context"
 type Storage interface {
 	CreateAll(ctx context.Context, metrics map[string]*MetricR) error
 	Create(ctx context.Context, m *Metric) error
-	Read(ctx context.Context, id string) (*Metric, error)
+	Read(ctx context.Context, id string, mType string) (*Metric, error)
 	Update(ctx context.Context, m *Metric) error
-	Delete(ctx context.Context, id string) error
+	Delete(ctx context.Context, id string, mType string) error
 }
 
 type MetricR struct {

@@ -26,7 +26,7 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	foundMetric, err := s.storage.Read(r.Context(), m.ID)
+	foundMetric, err := s.storage.Read(r.Context(), m.ID, m.MType)
 	if err != nil || foundMetric == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return

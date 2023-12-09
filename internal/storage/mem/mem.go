@@ -35,7 +35,7 @@ func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
 	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
 		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
 	}
-	s.data[m.ID] = m
+	s.data[m.ID+m.MType] = m
 	s.Unlock()
 	return nil
 }
@@ -46,14 +46,14 @@ func (s *Storage) CreateAll(_ context.Context, metrics map[string]*storage.Metri
 		if m.Metric.MType != storage.MTypeGauge && m.Metric.MType != storage.MTypeCounter {
 			return fmt.Errorf("metric type %s is not valid for ID %s", m.Metric.MType, m.Metric.ID)
 		}
-		s.data[m.Metric.ID] = m.Metric
+		s.data[m.Metric.ID+m.Metric.MType] = m.Metric
 	}
 	s.Unlock()
 	return nil
 }
 
-func (s *Storage) Read(_ context.Context, id string) (*storage.Metric, error) {
-	v, ok := s.data[id]
+func (s *Storage) Read(_ context.Context, id string, mType string) (*storage.Metric, error) {
+	v, ok := s.data[id+mType]
 	if !ok {
 		return nil, fmt.Errorf("%w: not found value by id %s", storage.ErrValueNotFound, id)
 	}
@@ -65,20 +65,20 @@ func (s *Storage) Update(_ context.Context, m *storage.Metric) error {
 	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
 		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
 	}
-	_, ok := s.data[m.ID]
+	_, ok := s.data[m.ID+m.MType]
 	if !ok {
 		return fmt.Errorf(
 			"can't update value by id, because value doesn't exists: id %s",
 			m.ID,
 		)
 	}
-	s.data[m.ID] = m
+	s.data[m.ID+m.MType] = m
 	s.Unlock()
 	return nil
 }
 
-func (s *Storage) Delete(_ context.Context, id string) error {
-	delete(s.data, id)
+func (s *Storage) Delete(_ context.Context, id string, mType string) error {
+	delete(s.data, id+mType)
 	return nil
 }
 
