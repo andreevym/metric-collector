@@ -12,7 +12,6 @@ import (
 func Load(filename string) (map[string]*storage.Metric, error) {
 	_, err := os.Stat(filename)
 	if err != nil {
-		logger.Log.Error(err.Error())
 		return map[string]*storage.Metric{}, nil
 	}
 	bytes, err := os.ReadFile(filename)
