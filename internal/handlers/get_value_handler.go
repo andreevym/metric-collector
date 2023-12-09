@@ -25,43 +25,43 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 	if err != nil || v == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
-	} else {
-		var res string
-		switch v.MType {
-		case storage.MTypeGauge:
-			if v.Delta == nil {
-				logger.Log.Error("delta can't be nil")
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			res = strconv.FormatInt(*v.Delta, 10)
-			_, err = io.WriteString(w, res)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			} else {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-		case storage.MTypeCounter:
-			if v.Value == nil {
-				logger.Log.Error("value can't be nil")
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			res := strconv.FormatFloat(*v.Value, 'f', -1, 64)
-			_, err = io.WriteString(w, res)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			} else {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-		default:
+	}
+
+	var res string
+	switch v.MType {
+	case storage.MTypeCounter:
+		if v.Delta == nil {
+			logger.Log.Error("delta can't be nil")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
+		res = strconv.FormatInt(*v.Delta, 10)
+		_, err = io.WriteString(w, res)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		return
+	case storage.MTypeGauge:
+		if v.Value == nil {
+			logger.Log.Error("value can't be nil")
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		res := strconv.FormatFloat(*v.Value, 'f', -1, 64)
+		_, err = io.WriteString(w, res)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		return
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 }
 
