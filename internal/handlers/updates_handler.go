@@ -82,7 +82,4 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 			return
 		}
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte{})
 }

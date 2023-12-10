@@ -42,7 +42,6 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
 		return
 	case storage.MTypeGauge:
 		if v.Value == nil {
@@ -57,7 +56,6 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
 		return
 	default:
 		w.WriteHeader(http.StatusBadRequest)
@@ -70,7 +68,5 @@ func (s ServiceHandlers) GetPingHandler(w http.ResponseWriter, r *http.Request) 
 	err := s.dbClient.Ping()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-	} else {
-		w.WriteHeader(http.StatusOK)
 	}
 }
