@@ -33,18 +33,19 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if len(metrics) == 0 {
+		return
+	}
+
 	result := map[string]*storage.Metric{}
 	for _, metric := range metrics {
 		found, ok := result[metric.ID+metric.MType]
-		if !ok {
-			result[metric.ID+metric.MType] = metric
-		} else {
-			if metric.MType == storage.MTypeCounter {
-				newDelta := *metric.Delta + *found.Delta
-				found.Delta = &newDelta
-			}
-			result[metric.ID+metric.MType] = metric
+		if ok && found != nil && metric.MType == storage.MTypeCounter {
+			newDelta := *metric.Delta + *found.Delta
+			found.Delta = &newDelta
 		}
+
+		result[metric.ID+metric.MType] = metric
 	}
 
 	metricsR := map[string]*storage.MetricR{}
@@ -57,29 +58,20 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 			return
 		}
 
-		if found == nil {
-			metricsR[metric.ID+metric.MType] = &storage.MetricR{
-				Metric:   metric,
-				IsExists: false,
-			}
-		} else {
-			if metric.MType == storage.MTypeCounter {
-				newDelta := *metric.Delta + *found.Delta
-				found.Delta = &newDelta
-			}
-			metricsR[metric.ID+metric.MType] = &storage.MetricR{
-				Metric:   metric,
-				IsExists: true,
-			}
+		if found != nil && metric.MType == storage.MTypeCounter {
+			newDelta := *metric.Delta + *found.Delta
+			found.Delta = &newDelta
+		}
+
+		metricsR[metric.ID+metric.MType] = &storage.MetricR{
+			Metric:   metric,
+			IsExists: found != nil,
 		}
 	}
 
-	if len(metricsR) > 0 {
-		err = s.storage.CreateAll(r.Context(), metricsR)
-		if err != nil {
-			logger.Log.Error("err", zap.Error(err))
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
+	err = s.storage.CreateAll(r.Context(), metricsR)
+	if err != nil {
+		logger.Log.Error("err", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
 	}
 }

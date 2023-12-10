@@ -45,20 +45,13 @@ func Start(pollDuration time.Duration, reportDuration time.Duration, address str
 func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 	for range ticker.C {
 		url := fmt.Sprintf("http://%s", address)
-		collectedMetrics, err := collectMetricsByMemStat(lastMemStats)
+		metrics, err := collectMetricsByMemStat(lastMemStats)
 		if err != nil {
 			logger.Log.Error("failed to collect metrics by mem stat", zap.Error(err))
 			break
 		}
 
-		delta := int64(1)
-		metricPollCount := &storage.Metric{
-			ID:    "PollCount",
-			MType: storage.MTypeCounter,
-			Delta: &delta,
-		}
-		collectedMetrics = append(collectedMetrics, metricPollCount)
-		err = sendUpdateMetricsRequest(url, collectedMetrics)
+		err = sendUpdateMetricsRequest(url, metrics)
 		if err != nil {
 			logger.Log.Error("failed to send gauge request to server", zap.Error(err))
 			break
@@ -81,13 +74,13 @@ func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 		logger.Log.Error("failed to send metric: matshal request body", zap.Error(err))
 		return err
 	}
+	compressedBytes, err := compressor.Compress(b)
+	if err != nil {
+		logger.Log.Error("failed to compress", zap.String("metric_json", string(b)), zap.Error(err))
+		return err
+	}
 	err = retry.Do(
 		func() error {
-			compressedBytes, err := compressor.Compress(b)
-			if err != nil {
-				logger.Log.Error("failed to compress", zap.String("metric_json", string(b)), zap.Error(err))
-				return err
-			}
 			request, err := http.NewRequest(
 				http.MethodPost,
 				fmt.Sprintf("%s/updates/", url),
@@ -174,6 +167,13 @@ func collectMetricsByMemStat(stats *runtime.MemStats) ([]*storage.Metric, error)
 	metrics = MustAppendGaugeMetricUint64(metrics, "StackSys", stats.StackSys)
 	metrics = MustAppendGaugeMetricUint64(metrics, "Sys", stats.Sys)
 	metrics = MustAppendGaugeMetricUint64(metrics, "TotalAlloc", stats.TotalAlloc)
+
+	delta := int64(1)
+	metrics = append(metrics, &storage.Metric{
+		ID:    "PollCount",
+		MType: storage.MTypeCounter,
+		Delta: &delta,
+	})
 	return metrics, nil
 }
 

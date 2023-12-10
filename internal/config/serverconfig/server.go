@@ -66,7 +66,7 @@ func Flags() (*ServerConfig, error) {
 	flag.StringVar(&flagLogLevel, "l", "info", "log level")
 	flag.IntVar(&flagStoreInterval, "i", 300, "STORE INTERVAL")
 	flag.StringVar(&flagFileStoragePath, "f", "/tmp/metrics-db.json", "file storage path")
-	flag.BoolVar(&flagRestore, "r", true, "restore")
+	flag.BoolVar(&flagRestore, "r", false, "restore")
 	flag.StringVar(&flagDatabaseDsn, "d", "", "postgres connection DATABASE_DSN")
 
 	// парсим переданные серверу аргументы в зарегистрированные переменные
