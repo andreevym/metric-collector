@@ -24,6 +24,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 		MType: storage.MTypeCounter,
 		Delta: &i,
 	})
+	assert.NoError(t, err)
 	err = memStorage.Create(nil, &storage.Metric{
 		ID:    "A",
 		MType: storage.MTypeCounter,
