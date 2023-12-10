@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	bytes2 "bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -174,7 +175,7 @@ func TestPostHandler(t *testing.T) {
 					Delta: &i,
 					Value: nil,
 				}
-				err := memStorage.Create(nil, metric)
+				err := memStorage.Create(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
 			for k, v := range test.createGauge {
@@ -185,7 +186,7 @@ func TestPostHandler(t *testing.T) {
 					Delta: nil,
 					Value: &i,
 				}
-				err := memStorage.Create(nil, metric)
+				err := memStorage.Create(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
 			for k, v := range test.updateCounter {
@@ -196,7 +197,7 @@ func TestPostHandler(t *testing.T) {
 					Delta: &i,
 					Value: nil,
 				}
-				err := memStorage.Update(nil, metric)
+				err := memStorage.Update(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
 			for k, v := range test.updateGauge {
@@ -207,7 +208,7 @@ func TestPostHandler(t *testing.T) {
 					Delta: nil,
 					Value: &i,
 				}
-				err := memStorage.Update(nil, metric)
+				err := memStorage.Update(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
 			serviceHandlers := handlers.NewServiceHandlers(memStorage, nil)

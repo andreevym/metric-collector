@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -19,20 +20,20 @@ import (
 func TestGzipCompressionUpdate(t *testing.T) {
 	memStorage := mem.NewStorage(nil)
 	i := int64(1)
-	err := memStorage.Create(nil, &storage.Metric{
+	err := memStorage.Create(context.TODO(), &storage.Metric{
 		ID:    "B",
 		MType: storage.MTypeCounter,
 		Delta: &i,
 	})
 	assert.NoError(t, err)
-	err = memStorage.Create(nil, &storage.Metric{
+	err = memStorage.Create(context.TODO(), &storage.Metric{
 		ID:    "A",
 		MType: storage.MTypeCounter,
 		Delta: &i,
 	})
 	assert.NoError(t, err)
 	f := 0.2
-	err = memStorage.Create(nil, &storage.Metric{
+	err = memStorage.Create(context.TODO(), &storage.Metric{
 		ID:    "B",
 		MType: storage.MTypeGauge,
 		Value: &f,
@@ -138,7 +139,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 func TestGzipCompressionValue(t *testing.T) {
 	memStorage := mem.NewStorage(nil)
 	valueA := int64(1)
-	err := memStorage.Create(nil, &storage.Metric{
+	err := memStorage.Create(context.TODO(), &storage.Metric{
 		ID:    "A",
 		MType: storage.MTypeCounter,
 		Delta: &valueA,

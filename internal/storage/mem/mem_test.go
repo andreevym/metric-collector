@@ -1,6 +1,7 @@
 package mem
 
 import (
+	"context"
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/storage"
@@ -31,7 +32,7 @@ func TestStorage_Create(t *testing.T) {
 			s := Storage{
 				data: tt.storage,
 			}
-			if err := s.Create(nil, tt.m); (err != nil) != tt.wantErr {
+			if err := s.Create(context.TODO(), tt.m); (err != nil) != tt.wantErr {
 				t.Errorf("Create() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -78,7 +79,7 @@ func TestStorage_Update(t *testing.T) {
 			s := Storage{
 				data: tt.storage,
 			}
-			if err := s.Update(nil, tt.m); (err != nil) != tt.wantErr {
+			if err := s.Update(context.TODO(), tt.m); (err != nil) != tt.wantErr {
 				t.Errorf("Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
