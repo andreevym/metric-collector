@@ -51,12 +51,11 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 			break
 		}
 
-		i := int64(1)
+		delta := int64(1)
 		metricPollCount := &storage.Metric{
 			ID:    "PollCount",
 			MType: storage.MTypeCounter,
-			Delta: &i,
-			Value: nil,
+			Delta: &delta,
 		}
 		collectedMetrics = append(collectedMetrics, metricPollCount)
 		err = sendUpdateMetricsRequest(url, collectedMetrics)

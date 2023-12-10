@@ -60,7 +60,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		if found == nil {
 			metricsR[metric.ID+metric.MType] = &storage.MetricR{
 				Metric:   metric,
-				IsExists: true,
+				IsExists: false,
 			}
 		} else {
 			if metric.MType == storage.MTypeCounter {
