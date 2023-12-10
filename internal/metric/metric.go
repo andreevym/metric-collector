@@ -68,11 +68,11 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 }
 
 func pollLastMemStatByTicker(ticker *time.Ticker) {
-	for a := range ticker.C {
+	for t := range ticker.C {
 		memStats := runtime.MemStats{}
 		runtime.ReadMemStats(&memStats)
 		lastMemStats = &memStats
-		logger.Log.Info("+ metric\n", zap.String("ticker", a.String()))
+		logger.Log.Info("metric", zap.String("ticker", t.String()))
 	}
 }
 

@@ -37,11 +37,11 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	_, err = w.Write(bytes)
+
+	w.WriteHeader(http.StatusOK)
+	_, err = io.WriteString(w, string(bytes))
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
