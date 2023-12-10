@@ -41,6 +41,12 @@ func TestUpdateMetrics(t *testing.T) {
 			Value: nil,
 		},
 		storage.Metric{
+			ID:    "b",
+			MType: storage.MTypeCounter,
+			Delta: &d2,
+			Value: nil,
+		},
+		storage.Metric{
 			ID:    "a",
 			MType: storage.MTypeCounter,
 			Delta: &d2,
@@ -58,6 +64,42 @@ func TestUpdateMetrics(t *testing.T) {
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, UpdatesMetricContentType, contentType)
 	require.Equal(t, "", get)
+
+	metric := storage.Metric{
+		ID:    "a",
+		MType: storage.MTypeCounter,
+		Delta: &d2,
+		Value: nil,
+	}
+	expected, err := json.Marshal(metric)
+	require.NoError(t, err)
+	reqBody, err = json.Marshal(storage.Metric{
+		ID:    metric.ID,
+		MType: metric.MType,
+	})
+	require.NoError(t, err)
+	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes.NewBuffer(reqBody))
+	require.Equal(t, http.StatusOK, statusCode)
+	require.Equal(t, ValueMetricContentType, contentType)
+	require.JSONEq(t, string(expected), get)
+
+	metric = storage.Metric{
+		ID:    "b",
+		MType: storage.MTypeCounter,
+		Delta: &d2,
+		Value: nil,
+	}
+	expected, err = json.Marshal(metric)
+	require.NoError(t, err)
+	reqBody, err = json.Marshal(storage.Metric{
+		ID:    metric.ID,
+		MType: metric.MType,
+	})
+	require.NoError(t, err)
+	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes.NewBuffer(reqBody))
+	require.Equal(t, http.StatusOK, statusCode)
+	require.Equal(t, ValueMetricContentType, contentType)
+	require.JSONEq(t, string(expected), get)
 }
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, reqBody io.Reader) (int, string, string) {
