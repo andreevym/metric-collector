@@ -32,25 +32,21 @@ func TestUpdateMetrics(t *testing.T) {
 			ID:    "a",
 			MType: storage.MTypeCounter,
 			Delta: &d1,
-			Value: nil,
 		},
 		storage.Metric{
 			ID:    "b",
 			MType: storage.MTypeCounter,
 			Delta: &d1,
-			Value: nil,
 		},
 		storage.Metric{
 			ID:    "b",
 			MType: storage.MTypeCounter,
 			Delta: &d2,
-			Value: nil,
 		},
 		storage.Metric{
 			ID:    "a",
 			MType: storage.MTypeCounter,
 			Delta: &d2,
-			Value: nil,
 		},
 	)
 	reqBody, err := json.Marshal(&metrics)
@@ -65,11 +61,11 @@ func TestUpdateMetrics(t *testing.T) {
 	require.Equal(t, UpdatesMetricContentType, contentType)
 	require.Equal(t, "", get)
 
+	expectedDelta := d1 + d2 + d1 + d2
 	metric := storage.Metric{
 		ID:    "a",
 		MType: storage.MTypeCounter,
-		Delta: &d2,
-		Value: nil,
+		Delta: &expectedDelta,
 	}
 	expected, err := json.Marshal(metric)
 	require.NoError(t, err)
@@ -86,7 +82,7 @@ func TestUpdateMetrics(t *testing.T) {
 	metric = storage.Metric{
 		ID:    "b",
 		MType: storage.MTypeCounter,
-		Delta: &d2,
+		Delta: &expectedDelta,
 		Value: nil,
 	}
 	expected, err = json.Marshal(metric)
