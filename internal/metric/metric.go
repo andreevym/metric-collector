@@ -27,6 +27,7 @@ const (
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
 	// при каждом обновлении метрики из пакета runtime (на каждый pollInterval — см. ниже).
+	pollCount    int64
 	lastMemStats *runtime.MemStats
 )
 
@@ -44,6 +45,7 @@ func Start(pollDuration time.Duration, reportDuration time.Duration, address str
 // sendByTickerAndAddress send metric to server by ticker and address
 func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 	for range ticker.C {
+		pollCount++
 		url := fmt.Sprintf("http://%s", address)
 		metrics, err := collectMetricsByMemStat(lastMemStats)
 		if err != nil {
@@ -168,11 +170,10 @@ func collectMetricsByMemStat(stats *runtime.MemStats) ([]*storage.Metric, error)
 	metrics = MustAppendGaugeMetricUint64(metrics, "Sys", stats.Sys)
 	metrics = MustAppendGaugeMetricUint64(metrics, "TotalAlloc", stats.TotalAlloc)
 
-	delta := int64(1)
 	metrics = append(metrics, &storage.Metric{
 		ID:    "PollCount",
 		MType: storage.MTypeCounter,
-		Delta: &delta,
+		Delta: &pollCount,
 	})
 	return metrics, nil
 }
