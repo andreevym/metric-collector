@@ -141,7 +141,7 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.Metric
 				m.Metric.MType,
 			)
 			if err != nil {
-				return fmt.Errorf("failed exec context: %w", err)
+				return fmt.Errorf("failed update: %w", err)
 			}
 		} else {
 			_, err = insStmt.ExecContext(
@@ -152,7 +152,7 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.Metric
 				m.Metric.Value,
 			)
 			if err != nil {
-				return fmt.Errorf("failed exec context: %w", err)
+				return fmt.Errorf("failed insert: %w", err)
 			}
 		}
 	}
