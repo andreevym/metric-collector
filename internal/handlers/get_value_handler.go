@@ -19,15 +19,13 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	id := chi.URLParam(r, "metricName")
-
-	v, err := s.storage.Read(r.Context(), id, metricType)
+	metricName := chi.URLParam(r, "metricName")
+	v, err := s.storage.Read(r.Context(), metricName, metricType)
 	if err != nil || v == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	var res string
 	switch v.MType {
 	case storage.MTypeCounter:
 		if v.Delta == nil {
@@ -35,14 +33,12 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-		res = strconv.FormatInt(*v.Delta, 10)
+		res := strconv.FormatInt(*v.Delta, 10)
 		_, err = io.WriteString(w, res)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
-		return
 	case storage.MTypeGauge:
 		if v.Value == nil {
 			logger.Log.Error("value can't be nil")
@@ -55,18 +51,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-
-		return
 	default:
 		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-}
-
-// GetPingHandler ping database
-func (s ServiceHandlers) GetPingHandler(w http.ResponseWriter, r *http.Request) {
-	err := s.dbClient.Ping()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
 	}
 }

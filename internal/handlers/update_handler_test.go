@@ -133,6 +133,7 @@ func TestUpdateHandler(t *testing.T) {
 		})
 	}
 }
+
 func testRequest(t *testing.T, ts *httptest.Server, method, path string, reqBody io.Reader) (int, string, string) {
 	req, err := http.NewRequest(method, ts.URL+path, reqBody)
 	require.NoError(t, err)
