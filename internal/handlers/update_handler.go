@@ -28,41 +28,41 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		logger.Log.Error("error", zap.Error(err))
 	}
 
-	m := &storage.Metric{}
+	metric := &storage.Metric{}
 	if len(bytes) > 0 {
-		err = json.Unmarshal(bytes, &m)
+		err = json.Unmarshal(bytes, &metric)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	} else {
-		m.MType = chi.URLParam(r, "metricType")
-		m.ID = chi.URLParam(r, "metricName")
-		if m.MType == storage.MTypeCounter {
+		metric.MType = chi.URLParam(r, "metricType")
+		metric.ID = chi.URLParam(r, "metricName")
+		if metric.MType == storage.MTypeCounter {
 			v := chi.URLParam(r, "metricValue")
 			delta, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			m.Delta = &delta
-		} else if m.MType == storage.MTypeGauge {
+			metric.Delta = &delta
+		} else if metric.MType == storage.MTypeGauge {
 			v := chi.URLParam(r, "metricValue")
 			value, err := strconv.ParseFloat(v, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			m.Value = &value
+			metric.Value = &value
 		}
 	}
 
-	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+	if metric.MType != storage.MTypeGauge && metric.MType != storage.MTypeCounter {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	foundValue, err := s.storage.Read(r.Context(), m.ID, m.MType)
+	foundValue, err := s.storage.Read(r.Context(), metric.ID, metric.MType)
 	if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
 		logger.Log.Error("failed update metric",
 			zap.Error(err))
@@ -71,24 +71,24 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	if foundValue == nil {
-		err = s.storage.Create(r.Context(), m)
+		err = s.storage.Create(r.Context(), metric)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	} else {
-		if m.MType == storage.MTypeCounter {
-			newDelta := *m.Delta + *foundValue.Delta
-			m.Delta = &newDelta
+		if metric.MType == storage.MTypeCounter {
+			newDelta := *metric.Delta + *foundValue.Delta
+			metric.Delta = &newDelta
 		}
-		err = s.storage.Update(r.Context(), m)
+		err = s.storage.Update(r.Context(), metric)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
 	}
 
-	bytes, err = json.Marshal(&m)
+	bytes, err = json.Marshal(&metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

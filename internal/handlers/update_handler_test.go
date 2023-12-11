@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
@@ -149,4 +151,58 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, reqBody
 
 	contentType := resp.Header.Get("Content-Type")
 	return resp.StatusCode, contentType, string(respBody)
+}
+
+func TestUpdates(t *testing.T) {
+	idCounter := "CounterBatchZip" + strconv.Itoa(rand.Int())
+	idGauge := "GaugeBatchZip" + strconv.Itoa(rand.Int())
+	valueCounter1, valueCounter2 := int64(rand.Int()), int64(rand.Int())
+	valueGauge1, valueGauge2 := float64(rand.Float32()), float64(rand.Float32())
+
+	metrics := []storage.Metric{
+		{
+			ID:    idCounter,
+			MType: "counter",
+			Delta: &valueCounter1,
+		},
+		{
+			ID:    idGauge,
+			MType: "gauge",
+			Value: &valueGauge1,
+		},
+		{
+			ID:    idCounter,
+			MType: "counter",
+			Delta: &valueCounter2,
+		},
+		{
+			ID:    idGauge,
+			MType: "gauge",
+			Value: &valueGauge2,
+		},
+	}
+
+	b, err := json.Marshal(metrics)
+	require.NoError(t, err)
+	reqBody := bytes.NewBuffer(b)
+	memStorage := mem.NewStorage(nil)
+	serviceHandlers := handlers.NewServiceHandlers(memStorage, nil)
+	router := handlers.NewRouter(serviceHandlers)
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+	statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/updates/", reqBody)
+	assert.Equal(t, statusCode, statusCode)
+	assert.Equal(t, contentType, contentType)
+	assert.Equal(t, "", get)
+
+	statusCode, contentType, get = testRequest(t, ts, http.MethodGet, "/value/counter/"+idCounter, nil)
+	assert.Equal(t, statusCode, statusCode)
+	assert.Equal(t, contentType, contentType)
+	assert.Equal(t, strconv.FormatInt(valueCounter1+valueCounter2, 10), get)
+
+	statusCode, contentType, get = testRequest(t, ts, http.MethodGet, "/value/gauge/"+idGauge, nil)
+	assert.Equal(t, statusCode, statusCode)
+	assert.Equal(t, contentType, contentType)
+	res := strconv.FormatFloat(valueGauge2, 'f', -1, 64)
+	assert.Equal(t, res, get)
 }

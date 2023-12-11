@@ -42,7 +42,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		found, ok := result[metric.ID+metric.MType]
 		if ok && found != nil && metric.MType == storage.MTypeCounter {
 			newDelta := *metric.Delta + *found.Delta
-			found.Delta = &newDelta
+			metric.Delta = &newDelta
 		}
 
 		result[metric.ID+metric.MType] = metric
@@ -60,7 +60,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 
 		if found != nil && metric.MType == storage.MTypeCounter {
 			newDelta := *metric.Delta + *found.Delta
-			found.Delta = &newDelta
+			metric.Delta = &newDelta
 		}
 
 		metricsR[metric.ID+metric.MType] = &storage.MetricR{
