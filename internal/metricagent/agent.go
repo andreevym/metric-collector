@@ -1,6 +1,7 @@
 package metricagent
 
 import (
+	"context"
 	"time"
 )
 
@@ -25,11 +26,12 @@ func NewAgent(
 }
 
 func (a Agent) Start() {
+	ctx := context.Background()
 	tickerPoll := time.NewTicker(a.PollDuration)
 	go pollLastMemStatByTicker(tickerPoll)
 
 	tickerReport := time.NewTicker(a.ReportDuration)
-	go sendByTickerAndAddress(tickerReport, a.Address)
+	go sendLastMemStats(ctx, tickerReport, a.Address)
 
 	// время жизни клиента для сбора метрик
 	time.Sleep(a.LiveTime)

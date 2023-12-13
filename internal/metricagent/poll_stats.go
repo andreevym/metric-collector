@@ -10,9 +10,9 @@ import (
 
 func pollLastMemStatByTicker(ticker *time.Ticker) {
 	for t := range ticker.C {
+		logger.Logger().Debug("pollLastMemStatByTicker", zap.String("ticker", t.String()))
 		memStats := runtime.MemStats{}
 		runtime.ReadMemStats(&memStats)
 		lastMemStats = &memStats
-		logger.Logger().Info("metric", zap.String("ticker", t.String()))
 	}
 }

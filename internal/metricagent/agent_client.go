@@ -2,6 +2,7 @@ package metricagent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,9 +28,13 @@ var (
 	lastMemStats *runtime.MemStats
 )
 
-// sendByTickerAndAddress send metric to server by ticker and address
-func sendByTickerAndAddress(ticker *time.Ticker, address string) {
-	for range ticker.C {
+// sendLastMemStats send metric to server by ticker and address
+func sendLastMemStats(ctx context.Context, ticker *time.Ticker, address string) {
+	for t := range ticker.C {
+		logger.Logger().Info("sendLastMemStats",
+			zap.String("ticker", t.String()),
+			zap.Int64("pollCount", pollCount),
+		)
 		pollCount++
 		metrics, err := collectMetricsByMemStat(lastMemStats, pollCount)
 		if err != nil {
@@ -37,7 +42,7 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 			break
 		}
 
-		err = sendUpdateMetricsRequest(address, metrics)
+		err = sendUpdateMetricsRequest(ctx, address, metrics)
 		if err != nil {
 			logger.Logger().Error("failed to send gauge request to server", zap.Error(err))
 			break
@@ -45,7 +50,7 @@ func sendByTickerAndAddress(ticker *time.Ticker, address string) {
 	}
 }
 
-func sendUpdateMetricsRequest(address string, metric []*storage.Metric) error {
+func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*storage.Metric) error {
 	url := fmt.Sprintf("http://%s", address)
 	reqBodyBytes, err := json.Marshal(metric)
 	if err != nil {
@@ -58,15 +63,15 @@ func sendUpdateMetricsRequest(address string, metric []*storage.Metric) error {
 			string(reqBodyBytes)), zap.Error(err))
 		return err
 	}
-	var request *http.Request
-	request, err = http.NewRequest(
+	request, err := http.NewRequestWithContext(
+		ctx,
 		http.MethodPost,
 		fmt.Sprintf("%s/updates/", url),
 		bytes.NewBuffer(compressedBytes),
 	)
 	if err != nil {
 		logger.Logger().Error("failed to create new request",
-			zap.String("metric_json", string(reqBodyBytes)), zap.Error(err))
+			zap.String("request body", string(reqBodyBytes)), zap.Error(err))
 		return err
 	}
 	request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
@@ -77,11 +82,6 @@ func sendUpdateMetricsRequest(address string, metric []*storage.Metric) error {
 			var resp *http.Response
 			resp, err = http.DefaultClient.Do(request)
 			if err != nil {
-				logger.Logger().Error("error to do request",
-					zap.String("request.uri", request.RequestURI),
-					zap.String("request.body", string(reqBodyBytes)),
-					zap.Error(err),
-				)
 				return err
 			}
 			if resp == nil {
@@ -89,7 +89,7 @@ func sendUpdateMetricsRequest(address string, metric []*storage.Metric) error {
 			}
 			if isRetriableStatus(resp.StatusCode) {
 				logger.Logger().Error("error response status",
-					zap.String("request.uri", request.RequestURI),
+					zap.String("request.URL", request.URL.String()),
 					zap.String("request.body", string(reqBodyBytes)),
 					zap.String("response.status", resp.Status),
 					zap.Error(err),
@@ -102,7 +102,7 @@ func sendUpdateMetricsRequest(address string, metric []*storage.Metric) error {
 			respBodyBytes, err = io.ReadAll(resp.Body)
 			if err != nil {
 				logger.Logger().Error("error read response body",
-					zap.String("request.uri", request.RequestURI),
+					zap.String("request.URL", request.URL.String()),
 					zap.String("request.body", string(reqBodyBytes)),
 					zap.String("response.status", resp.Status),
 					zap.Error(err),
@@ -111,7 +111,7 @@ func sendUpdateMetricsRequest(address string, metric []*storage.Metric) error {
 				return nil
 			}
 			logger.Logger().Debug("read response body",
-				zap.String("request.uri", request.RequestURI),
+				zap.String("request.URL", request.URL.String()),
 				zap.String("request.body", string(reqBodyBytes)),
 				zap.String("response.status", resp.Status),
 				zap.String("response.decompressed_body", string(respBodyBytes)),
@@ -122,6 +122,15 @@ func sendUpdateMetricsRequest(address string, metric []*storage.Metric) error {
 		},
 		retry.Attempts(retryAttempts),
 		retry.DelayType(utils.RetryDelayType),
+		retry.OnRetry(func(n uint, err error) {
+			logger.Logger().Error("error to send request",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.String("request.URL", request.URL.String()),
+				zap.String("request.body", string(reqBodyBytes)),
+				zap.Error(err),
+			)
+		}),
 	)
 	if err != nil {
 		logger.Logger().Error(
