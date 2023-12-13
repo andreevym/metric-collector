@@ -20,7 +20,7 @@ func RequestLogger(h http.Handler) http.Handler {
 			return
 		}
 
-		logger.Log.Info(
+		logger.Logger().Info(
 			"request",
 			zap.String("method", r.Method),
 			zap.String("URI", r.RequestURI),
@@ -33,16 +33,16 @@ func RequestLogger(h http.Handler) http.Handler {
 		defer func() {
 			err := r.Body.Close()
 			if err != nil {
-				logger.Log.Error(err.Error())
+				logger.Logger().Error(err.Error())
 			}
 		}()
 		bytes, err := io.ReadAll(r.Body)
 		if err != nil {
-			logger.Log.Error("read body error", zap.Error(err))
+			logger.Logger().Error("read body error", zap.Error(err))
 			return
 		}
 
-		logger.Log.Info(
+		logger.Logger().Info(
 			"response",
 			zap.Int("status", r.Response.StatusCode),
 			zap.Int("status", len(bytes)),

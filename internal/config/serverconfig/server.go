@@ -124,7 +124,7 @@ func Flags() (*ServerConfig, error) {
 	} else {
 		restore, err := strconv.ParseBool(config.Restore)
 		if err != nil {
-			logger.Log.Fatal(
+			logger.Logger().Fatal(
 				"can't parse env RESTORE",
 				zap.String("RESTORE", config.Restore),
 				zap.Error(err),

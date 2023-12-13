@@ -29,7 +29,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 	switch v.MType {
 	case storage.MTypeCounter:
 		if v.Delta == nil {
-			logger.Log.Error("delta can't be nil")
+			logger.Logger().Error("delta can't be nil")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -41,7 +41,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 		}
 	case storage.MTypeGauge:
 		if v.Value == nil {
-			logger.Log.Error("value can't be nil")
+			logger.Logger().Error("value can't be nil")
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}

@@ -55,7 +55,7 @@ func Start(cfg *serverconfig.ServerConfig) error {
 
 		err = filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
 			if !info.IsDir() {
-				logger.Log.Info("apply migration", zap.String("path", path))
+				logger.Logger().Info("apply migration", zap.String("path", path))
 				bytes, err := os.ReadFile(path)
 				if err != nil {
 					return err

@@ -115,7 +115,7 @@ func (s *Storage) Backup() error {
 	time.AfterFunc(s.opt.StoreInterval, func() {
 		err := Save(s.opt.BackupPath, s.data)
 		if err != nil {
-			logger.Log.Error("problem to save backup ", zap.Error(err))
+			logger.Logger().Error("problem to save backup ", zap.Error(err))
 			panic(err)
 		}
 	})

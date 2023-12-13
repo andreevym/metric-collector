@@ -21,14 +21,14 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 	bytes, err := io.ReadAll(r.Body)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		logger.Log.Error("error", zap.Error(err))
+		logger.Logger().Error("error", zap.Error(err))
 		return
 	}
 
 	var metrics []*storage.Metric
 	err = json.Unmarshal(bytes, &metrics)
 	if err != nil {
-		logger.Log.Error("err", zap.Error(err))
+		logger.Logger().Error("err", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -52,7 +52,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 	for _, metric := range metrics {
 		found, err := s.storage.Read(r.Context(), metric.ID, metric.MType)
 		if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
-			logger.Log.Error("failed update metric",
+			logger.Logger().Error("failed update metric",
 				zap.Error(err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -71,7 +71,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 
 	err = s.storage.CreateAll(r.Context(), metricsR)
 	if err != nil {
-		logger.Log.Error("err", zap.Error(err))
+		logger.Logger().Error("err", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 	}
 }
