@@ -74,18 +74,10 @@ func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage
 		m, err = s.client.SelectByIDAndType(ctx, id, mType)
 		if err != nil {
 			var pgErr *pgconn.PgError
-			if !errors.As(err, &pgErr) {
-				// если это ошибка не с соединением к PostgreSQL, то ретрай не нужен
-				return nil
-			}
-			if err.Error() == "sql: no rows in result set" {
-				err = storage.ErrValueNotFound
-				return nil
-			}
 			// проверяем, что при обращении к PostgreSQL cервер получил ошибку транспорта
 			// из категории Class 08 — Connection Exception.
 			// если проблемы с соединением, то делаем повторяем попытку
-			if pgerrcode.IsConnectionException(pgErr.Code) {
+			if errors.As(err, &pgErr) && pgerrcode.IsConnectionException(pgErr.Code) {
 				return err
 			}
 			// если это ошибка не с соединением к PostgreSQL, то ретрай не нужен
