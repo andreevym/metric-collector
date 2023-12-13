@@ -96,7 +96,7 @@ func (c *Client) Insert(ctx context.Context, m *storage.Metric) error {
 	return nil
 }
 
-func (c *Client) SaveAll(ctx context.Context, metrics map[string]*storage.MetricR) error {
+func (c *Client) SaveAll(ctx context.Context, metrics map[string]storage.MetricR) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 

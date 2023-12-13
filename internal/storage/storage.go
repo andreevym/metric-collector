@@ -3,7 +3,7 @@ package storage
 import "context"
 
 type Storage interface {
-	CreateAll(ctx context.Context, metrics map[string]*MetricR) error
+	CreateAll(ctx context.Context, metrics map[string]MetricR) error
 	Create(ctx context.Context, m *Metric) error
 	Read(ctx context.Context, id string, mType string) (*Metric, error)
 	Update(ctx context.Context, m *Metric) error

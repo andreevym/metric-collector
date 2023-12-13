@@ -39,99 +39,67 @@ type ServerEnvConfig struct {
 	DatabaseDsn string `env:"DATABASE_DSN"`
 }
 
-var (
-	// flagRunAddr адрес и порт для запуска сервера, аргумент -a со значением :8080 по умолчанию
-	flagRunAddr string
-	// flagLogLevel уровень логирования агента
-	flagLogLevel string
-	// flagStoreInterval флаг -i — интервал времени в секундах,
-	// по истечении которого текущие показания сервера сохраняются на диск (по умолчанию 300 секунд,
-	// значение 0 делает запись синхронной).
-	flagStoreInterval int
-	// flagFileStoragePath флаг -f — полное имя файла,
-	// куда сохраняются текущие значения (по умолчанию /tmp/metrics-db.json,
-	// пустое значение отключает функцию записи на диск).
-	flagFileStoragePath string
-	// flagRestore флаг -r — булево значение (true/false),
-	// определяющее, загружать или нет ранее сохранённые значения из указанного
-	// файла при старте сервера (по умолчанию true).
-	flagRestore bool
-	// flagDatabaseDsn флаг командной строки -d,
-	// Строка с адресом подключения к БД
-	flagDatabaseDsn string
-)
-
 func Flags() (*ServerConfig, error) {
-	flag.StringVar(&flagRunAddr, "a", ":8080", "address and port to run server")
-	flag.StringVar(&flagLogLevel, "l", "info", "log level")
-	flag.IntVar(&flagStoreInterval, "i", 300, "STORE INTERVAL")
-	flag.StringVar(&flagFileStoragePath, "f", "/tmp/metrics-db.json", "file storage path")
-	flag.BoolVar(&flagRestore, "r", false, "restore")
-	flag.StringVar(&flagDatabaseDsn, "d", "", "postgres connection DATABASE_DSN")
+	cfg := ServerConfig{}
+	flag.StringVar(&cfg.Address, "a", ":8080", "адрес и порт для запуска сервера")
+	flag.StringVar(&cfg.LogLevel, "l", "info", "уровень логирования агента")
+	flag.DurationVar(&cfg.StoreInterval, "i", 300*time.Second, "интервал времени в секундах "+
+		"по истечении которого текущие показания сервера сохраняются на диск "+
+		"(значение 0 делает запись синхронной).")
+	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "полное имя файла "+
+		"куда сохраняются текущие значения, пустое значение отключает функцию записи на диск.")
+	flag.BoolVar(&cfg.Restore, "r", false, "определяющее, загружать или нет ранее сохранённые значения"+
+		" из указанного файла при старте сервера")
+	flag.StringVar(&cfg.DatabaseDsn, "d", "", "строка с адресом подключения к БД")
 
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
 
-	var config ServerEnvConfig
-
-	err := env.Parse(&config)
+	var envConfig ServerEnvConfig
+	err := env.Parse(&envConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	resultConfig := ServerConfig{}
-
-	if config.Address == "" {
-		resultConfig.Address = flagRunAddr
-	} else {
-		resultConfig.Address = config.Address
+	if envConfig.Address != "" {
+		cfg.Address = envConfig.Address
 	}
 
 	// Логирование, по умолчанию info
-	if config.LogLevel == "" {
-		resultConfig.LogLevel = flagLogLevel
-	} else {
-		resultConfig.LogLevel = config.LogLevel
+	if envConfig.LogLevel != "" {
+		cfg.LogLevel = envConfig.LogLevel
 	}
 
 	// Логирование, по умолчанию info
-	if config.DatabaseDsn == "" {
-		resultConfig.DatabaseDsn = flagDatabaseDsn
-	} else {
-		resultConfig.DatabaseDsn = config.DatabaseDsn
+	if envConfig.DatabaseDsn != "" {
+		cfg.DatabaseDsn = envConfig.DatabaseDsn
 	}
 
-	if config.StoreInterval == "" {
-		resultConfig.StoreInterval = time.Second * time.Duration(flagStoreInterval)
-	} else {
-		v, err := strconv.ParseInt(config.StoreInterval, 10, 32)
+	if envConfig.StoreInterval != "" {
+		v, err := strconv.ParseInt(envConfig.StoreInterval, 10, 32)
 		if err != nil {
-			panic(fmt.Errorf("problem setup config.StoreInterval %w", err))
+			panic(fmt.Errorf("problem setup envConfig.StoreInterval %w", err))
 		}
-		resultConfig.StoreInterval = time.Second * time.Duration(v)
+		cfg.StoreInterval = time.Second * time.Duration(v)
 	}
 
 	// Логирование, по умолчанию info
-	if config.FileStoragePath == "" {
-		resultConfig.FileStoragePath = flagFileStoragePath
-	} else {
-		resultConfig.FileStoragePath = config.FileStoragePath
+	if envConfig.FileStoragePath != "" {
+		cfg.FileStoragePath = envConfig.FileStoragePath
 	}
 
 	// Логирование, по умолчанию info
-	if config.Restore == "" {
-		resultConfig.Restore = flagRestore
-	} else {
-		restore, err := strconv.ParseBool(config.Restore)
+	if envConfig.Restore != "" {
+		restore, err := strconv.ParseBool(envConfig.Restore)
 		if err != nil {
 			logger.Logger().Fatal(
 				"can't parse env RESTORE",
-				zap.String("RESTORE", config.Restore),
+				zap.String("RESTORE", envConfig.Restore),
 				zap.Error(err),
 			)
 		}
-		resultConfig.Restore = restore
+		cfg.Restore = restore
 	}
 
-	return &resultConfig, nil
+	return &cfg, nil
 }

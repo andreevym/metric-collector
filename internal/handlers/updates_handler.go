@@ -48,7 +48,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		result[metric.ID+metric.MType] = metric
 	}
 
-	metricsR := map[string]*storage.MetricR{}
+	metricsR := map[string]storage.MetricR{}
 	for _, metric := range metrics {
 		found, err := s.storage.Read(r.Context(), metric.ID, metric.MType)
 		if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
@@ -63,7 +63,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 			metric.Delta = &newDelta
 		}
 
-		metricsR[metric.ID+metric.MType] = &storage.MetricR{
+		metricsR[metric.ID+metric.MType] = storage.MetricR{
 			Metric:   metric,
 			IsExists: found != nil,
 		}

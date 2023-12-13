@@ -49,7 +49,7 @@ func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
 	return err
 }
 
-func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]*storage.MetricR) error {
+func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]storage.MetricR) error {
 	s.Lock()
 	var err error
 	_ = retry.Do(

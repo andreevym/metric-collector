@@ -44,7 +44,7 @@ func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
 	return nil
 }
 
-func (s *Storage) CreateAll(_ context.Context, metrics map[string]*storage.MetricR) error {
+func (s *Storage) CreateAll(_ context.Context, metrics map[string]storage.MetricR) error {
 	s.Lock()
 	for _, m := range metrics {
 		if m.Metric.MType != storage.MTypeGauge && m.Metric.MType != storage.MTypeCounter {
