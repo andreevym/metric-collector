@@ -6,7 +6,7 @@ import (
 
 	"github.com/andreevym/metric-collector/internal/config/agentconfig"
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/metric"
+	"github.com/andreevym/metric-collector/internal/metricagent"
 )
 
 func main() {
@@ -24,6 +24,8 @@ func main() {
 
 	pollDuration := time.Duration(cfg.PollInterval) * time.Second
 	reportDuration := time.Duration(cfg.ReportInterval) * time.Second
+	liveTime := time.Minute
 
-	metric.Start(pollDuration, reportDuration, cfg.Address)
+	a := metricagent.NewAgent(cfg.Address, pollDuration, reportDuration, liveTime)
+	a.Start()
 }
