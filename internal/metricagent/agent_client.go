@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const retryAttempts = 3
+const retryAttempts = 10
 
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
