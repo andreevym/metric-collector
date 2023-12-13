@@ -4,7 +4,9 @@ import (
 	"go.uber.org/zap"
 )
 
-var Log *zap.Logger
+const defaultLogLevel = "INFO"
+
+var log *zap.Logger
 
 func NewLogger(level string) (*zap.Logger, error) {
 	lvl, err := zap.ParseAtomicLevel(level)
@@ -20,19 +22,21 @@ func NewLogger(level string) (*zap.Logger, error) {
 		return nil, err
 	}
 
+	log = zl
+
 	return zl, err
 }
 
-func Logger(level string) (*zap.Logger, error) {
-	if Log != nil {
-		return Log, nil
+func Logger() *zap.Logger {
+	if log != nil {
+		return log
 	}
 
 	var err error
-	Log, err = NewLogger(level)
+	log, err = NewLogger(defaultLogLevel)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return Log, nil
+	return log
 }

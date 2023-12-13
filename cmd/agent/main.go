@@ -17,7 +17,7 @@ func main() {
 	if cfg == nil {
 		log.Fatal("agent config can't be nil")
 	}
-	_, err = logger.Logger(cfg.LogLevel)
+	_, err = logger.NewLogger(cfg.LogLevel)
 	if err != nil {
 		log.Fatal("logger can't be init", cfg.LogLevel, err)
 	}
