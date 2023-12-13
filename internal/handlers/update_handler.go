@@ -23,7 +23,7 @@ const (
 func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", UpdateMetricContentType)
 
-	metric, err := buildMetricByHttpRequest(r)
+	metric, err := buildMetricByRequest(r)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -73,7 +73,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func buildMetricByHttpRequest(r *http.Request) (*storage.Metric, error) {
+func buildMetricByRequest(r *http.Request) (*storage.Metric, error) {
 	metric, err := buildMetricByBody(r.Body)
 	if err == nil && metric != nil {
 		return metric, nil
