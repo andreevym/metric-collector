@@ -23,37 +23,10 @@ const (
 func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", UpdateMetricContentType)
 
-	bytes, err := io.ReadAll(r.Body)
+	metric, err := buildMetricByHttpRequest(r)
 	if err != nil {
-		logger.Logger().Error("error", zap.Error(err))
-	}
-
-	metric := &storage.Metric{}
-	if len(bytes) > 0 {
-		err = json.Unmarshal(bytes, &metric)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	} else {
-		metric.MType = chi.URLParam(r, "metricType")
-		metric.ID = chi.URLParam(r, "metricName")
-		v := chi.URLParam(r, "metricValue")
-		if metric.MType == storage.MTypeCounter {
-			delta, err := strconv.ParseInt(v, 10, 64)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			metric.Delta = &delta
-		} else if metric.MType == storage.MTypeGauge {
-			value, err := strconv.ParseFloat(v, 64)
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-			metric.Value = &value
-		}
+		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
 
 	if metric.MType != storage.MTypeGauge && metric.MType != storage.MTypeCounter {
@@ -87,7 +60,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	bytes, err = json.Marshal(&metric)
+	bytes, err := json.Marshal(&metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -98,4 +71,52 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+}
+
+func buildMetricByHttpRequest(r *http.Request) (*storage.Metric, error) {
+	metric, err := buildMetricByBody(r.Body)
+	if err != nil {
+		return buildMetricByParam(r)
+	}
+
+	return metric, err
+}
+
+func buildMetricByBody(body io.ReadCloser) (*storage.Metric, error) {
+	bytes, err := io.ReadAll(body)
+	if err != nil {
+		logger.Logger().Error("error", zap.Error(err))
+	}
+
+	if len(bytes) == 0 {
+		return nil, errors.New("body len is empty")
+	}
+
+	metric := &storage.Metric{}
+	err = json.Unmarshal(bytes, &metric)
+	return metric, err
+}
+
+func buildMetricByParam(r *http.Request) (*storage.Metric, error) {
+	metric := &storage.Metric{}
+	metric.MType = chi.URLParam(r, "metricType")
+	metric.ID = chi.URLParam(r, "metricName")
+	v := chi.URLParam(r, "metricValue")
+	if metric.MType == storage.MTypeCounter {
+		delta, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+		metric.Delta = &delta
+	} else if metric.MType == storage.MTypeGauge {
+		value, err := strconv.ParseFloat(v, 64)
+		if err != nil {
+			return nil, err
+		}
+		metric.Value = &value
+	} else {
+		return nil, errors.New("unknown type")
+	}
+
+	return metric, nil
 }
