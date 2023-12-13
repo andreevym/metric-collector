@@ -9,6 +9,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
+	"go.uber.org/zap"
 )
 
 const (
@@ -51,6 +52,13 @@ func Save(filename string, data map[string]*storage.Metric) error {
 		},
 		retry.Attempts(retryAttempts),
 		retry.DelayType(utils.RetryDelayType),
+		retry.OnRetry(func(n uint, err error) {
+			logger.Logger().Error("error open file",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.Error(err),
+			)
+		}),
 	)
 	if err != nil {
 		logger.Logger().Error(err.Error())

@@ -44,6 +44,13 @@ func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
 		},
 		retry.Attempts(retryAttempts),
 		retry.DelayType(utils.RetryDelayType),
+		retry.OnRetry(func(n uint, err error) {
+			logger.Logger().Error("error send request to postgres",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.Error(err),
+			)
+		}),
 	)
 	s.Unlock()
 	return err
@@ -63,6 +70,13 @@ func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]storage.Me
 		},
 		retry.Attempts(retryAttempts),
 		retry.DelayType(utils.RetryDelayType),
+		retry.OnRetry(func(n uint, err error) {
+			logger.Logger().Error("error send request to postgres",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.Error(err),
+			)
+		}),
 	)
 	s.Unlock()
 	return err
@@ -82,6 +96,13 @@ func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage
 		},
 		retry.Attempts(retryAttempts),
 		retry.DelayType(utils.RetryDelayType),
+		retry.OnRetry(func(n uint, err error) {
+			logger.Logger().Error("error send request to postgres",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.Error(err),
+			)
+		}),
 	)
 	return m, err
 }
@@ -100,6 +121,13 @@ func (s *PgStorage) Update(ctx context.Context, m *storage.Metric) error {
 		},
 		retry.Attempts(retryAttempts),
 		retry.DelayType(utils.RetryDelayType),
+		retry.OnRetry(func(n uint, err error) {
+			logger.Logger().Error("error send request to postgres",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.Error(err),
+			)
+		}),
 	)
 	s.Unlock()
 	return err
@@ -119,6 +147,13 @@ func (s *PgStorage) Delete(ctx context.Context, id string, mType string) error {
 		},
 		retry.Attempts(retryAttempts),
 		retry.DelayType(utils.RetryDelayType),
+		retry.OnRetry(func(n uint, err error) {
+			logger.Logger().Error("error send request to postgres",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.Error(err),
+			)
+		}),
 	)
 	s.Unlock()
 	return err
