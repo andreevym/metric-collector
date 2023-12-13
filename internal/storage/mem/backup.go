@@ -4,17 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 )
 
 const (
-	backupMaxRetries     = 3
-	backupInitialBackoff = 1 * time.Second
-	backupMaxBackoff     = 5 * time.Second
+	retryAttempts = 3
 )
 
 func Load(filename string) (map[string]*storage.Metric, error) {
@@ -51,9 +49,8 @@ func Save(filename string, data map[string]*storage.Metric) error {
 			}
 			return nil
 		},
-		retry.Attempts(backupMaxRetries),
-		retry.Delay(backupInitialBackoff),
-		retry.MaxDelay(backupMaxBackoff),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 	)
 	if err != nil {
 		logger.Logger().Error(err.Error())

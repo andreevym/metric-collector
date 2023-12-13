@@ -15,15 +15,12 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
 )
 
-const (
-	agentMaxRetries     = 3
-	agentInitialBackoff = 1 * time.Second
-	agentMaxBackoff     = 5 * time.Second
-)
+const retryAttempts = 3
 
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
@@ -145,9 +142,8 @@ func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 			// don't need to retry this error
 			return nil
 		},
-		retry.Attempts(agentMaxRetries),
-		retry.Delay(agentInitialBackoff),
-		retry.MaxDelay(agentMaxBackoff),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 	)
 	if err != nil {
 		logger.Logger().Error(

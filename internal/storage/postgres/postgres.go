@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"sync"
-	"time"
 
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -15,9 +15,7 @@ import (
 )
 
 const (
-	postgresMaxRetries     = 3
-	postgresInitialBackoff = 1 * time.Second
-	postgresMaxBackoff     = 5 * time.Second
+	retryAttempts = 3
 )
 
 type PgStorage struct {
@@ -44,9 +42,8 @@ func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
 			}
 			return nil
 		},
-		retry.Attempts(postgresMaxRetries),
-		retry.Delay(postgresInitialBackoff),
-		retry.MaxDelay(postgresMaxBackoff),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 	)
 	s.Unlock()
 	return err
@@ -64,9 +61,8 @@ func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]*storage.M
 			}
 			return nil
 		},
-		retry.Attempts(postgresMaxRetries),
-		retry.Delay(postgresInitialBackoff),
-		retry.MaxDelay(postgresMaxBackoff),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 	)
 	s.Unlock()
 	return err
@@ -84,9 +80,8 @@ func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage
 			}
 			return nil
 		},
-		retry.Attempts(postgresMaxRetries),
-		retry.Delay(postgresInitialBackoff),
-		retry.MaxDelay(postgresMaxBackoff),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 	)
 	return m, err
 }
@@ -103,9 +98,8 @@ func (s *PgStorage) Update(ctx context.Context, m *storage.Metric) error {
 			}
 			return nil
 		},
-		retry.Attempts(postgresMaxRetries),
-		retry.Delay(postgresInitialBackoff),
-		retry.MaxDelay(postgresMaxBackoff),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 	)
 	s.Unlock()
 	return err
@@ -123,9 +117,8 @@ func (s *PgStorage) Delete(ctx context.Context, id string, mType string) error {
 			}
 			return nil
 		},
-		retry.Attempts(postgresMaxRetries),
-		retry.Delay(postgresInitialBackoff),
-		retry.MaxDelay(postgresMaxBackoff),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 	)
 	s.Unlock()
 	return err
