@@ -75,11 +75,11 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 
 func buildMetricByHttpRequest(r *http.Request) (*storage.Metric, error) {
 	metric, err := buildMetricByBody(r.Body)
-	if err != nil {
-		return buildMetricByParam(r)
+	if err == nil && metric != nil {
+		return metric, nil
 	}
 
-	return metric, err
+	return buildMetricByParam(r)
 }
 
 func buildMetricByBody(body io.ReadCloser) (*storage.Metric, error) {
