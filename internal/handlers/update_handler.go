@@ -38,8 +38,8 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 	} else {
 		metric.MType = chi.URLParam(r, "metricType")
 		metric.ID = chi.URLParam(r, "metricName")
+		v := chi.URLParam(r, "metricValue")
 		if metric.MType == storage.MTypeCounter {
-			v := chi.URLParam(r, "metricValue")
 			delta, err := strconv.ParseInt(v, 10, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
@@ -47,7 +47,6 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 			}
 			metric.Delta = &delta
 		} else if metric.MType == storage.MTypeGauge {
-			v := chi.URLParam(r, "metricValue")
 			value, err := strconv.ParseFloat(v, 64)
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
