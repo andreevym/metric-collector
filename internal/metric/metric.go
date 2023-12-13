@@ -109,7 +109,7 @@ func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 			if resp == nil {
 				return nil
 			}
-			if isRetriableHttpStatus(resp.StatusCode) {
+			if isRetriableStatus(resp.StatusCode) {
 				logger.Logger().Error("error response status",
 					zap.String("request.uri", request.RequestURI),
 					zap.String("request.body", string(reqBodyBytes)),
@@ -231,6 +231,6 @@ func MustAppendGaugeMetricFloat64(metrics []*storage.Metric, id string, f float6
 	return metrics
 }
 
-func isRetriableHttpStatus(statusCode int) bool {
+func isRetriableStatus(statusCode int) bool {
 	return statusCode == 500 && statusCode < 503
 }
