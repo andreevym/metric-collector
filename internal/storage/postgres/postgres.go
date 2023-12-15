@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
@@ -20,18 +19,15 @@ const (
 
 type PgStorage struct {
 	client *Client
-	sync.RWMutex
 }
 
 func NewPgStorage(dbClient *Client) *PgStorage {
 	return &PgStorage{
 		dbClient,
-		sync.RWMutex{},
 	}
 }
 
 func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
-	s.Lock()
 	var err error
 	_ = retry.Do(
 		func() error {
@@ -52,12 +48,10 @@ func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
 			)
 		}),
 	)
-	s.Unlock()
 	return err
 }
 
 func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]storage.MetricR) error {
-	s.Lock()
 	var err error
 	_ = retry.Do(
 		func() error {
@@ -78,7 +72,6 @@ func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]storage.Me
 			)
 		}),
 	)
-	s.Unlock()
 	return err
 }
 
@@ -108,7 +101,6 @@ func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage
 }
 
 func (s *PgStorage) Update(ctx context.Context, m *storage.Metric) error {
-	s.Lock()
 	var err error
 	_ = retry.Do(
 		func() error {
@@ -129,12 +121,10 @@ func (s *PgStorage) Update(ctx context.Context, m *storage.Metric) error {
 			)
 		}),
 	)
-	s.Unlock()
 	return err
 }
 
 func (s *PgStorage) Delete(ctx context.Context, id string, mType string) error {
-	s.Lock()
 	var err error
 	_ = retry.Do(
 		func() error {
@@ -155,7 +145,6 @@ func (s *PgStorage) Delete(ctx context.Context, id string, mType string) error {
 			)
 		}),
 	)
-	s.Unlock()
 	return err
 }
 

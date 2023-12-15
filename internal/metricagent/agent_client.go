@@ -19,7 +19,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const retryAttempts = 10
+const retryAttempts = 100000
 
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
@@ -44,34 +44,33 @@ func sendLastMemStats(ctx context.Context, ticker *time.Ticker, address string) 
 
 		err = sendUpdateMetricsRequest(ctx, address, metrics)
 		if err != nil {
-			logger.Logger().Error("failed to send gauge request to server", zap.Error(err))
+			logger.Logger().Error("failed to send update request with last metric", zap.Error(err))
 			break
 		}
 	}
 }
 
 func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*storage.Metric) error {
-	url := fmt.Sprintf("http://%s", address)
-	reqBodyBytes, err := json.Marshal(metric)
+	b, err := json.Marshal(metric)
 	if err != nil {
-		logger.Logger().Error("failed to send metric: matshal request body", zap.Error(err))
+		logger.Logger().Error("failed to marshal request body", zap.Error(err))
 		return err
 	}
-	compressedBytes, err := compressor.Compress(reqBodyBytes)
+	compressedBytes, err := compressor.Compress(b)
 	if err != nil {
-		logger.Logger().Error("failed to compress", zap.String("metric_json",
-			string(reqBodyBytes)), zap.Error(err))
+		logger.Logger().Error("failed to compress",
+			zap.String("request body", string(b)), zap.Error(err))
 		return err
 	}
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		fmt.Sprintf("%s/updates/", url),
+		fmt.Sprintf("http://%s/updates/", address),
 		bytes.NewBuffer(compressedBytes),
 	)
 	if err != nil {
 		logger.Logger().Error("failed to create new request",
-			zap.String("request body", string(reqBodyBytes)), zap.Error(err))
+			zap.String("request body", string(b)), zap.Error(err))
 		return err
 	}
 	request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
@@ -90,7 +89,7 @@ func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*sto
 			if isRetriableStatus(resp.StatusCode) {
 				logger.Logger().Error("error response status",
 					zap.String("request.URL", request.URL.String()),
-					zap.String("request.body", string(reqBodyBytes)),
+					zap.String("request.body", string(b)),
 					zap.String("response.status", resp.Status),
 					zap.Error(err),
 				)
@@ -103,7 +102,7 @@ func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*sto
 			if err != nil {
 				logger.Logger().Error("error read response body",
 					zap.String("request.URL", request.URL.String()),
-					zap.String("request.body", string(reqBodyBytes)),
+					zap.String("request.body", string(b)),
 					zap.String("response.status", resp.Status),
 					zap.Error(err),
 				)
@@ -112,7 +111,7 @@ func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*sto
 			}
 			logger.Logger().Debug("read response body",
 				zap.String("request.URL", request.URL.String()),
-				zap.String("request.body", string(reqBodyBytes)),
+				zap.String("request.body", string(b)),
 				zap.String("response.status", resp.Status),
 				zap.String("response.decompressed_body", string(respBodyBytes)),
 			)
@@ -127,7 +126,7 @@ func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*sto
 				zap.Uint("currentAttempt", n),
 				zap.Int("retryAttempts", retryAttempts),
 				zap.String("request.URL", request.URL.String()),
-				zap.String("request.body", string(reqBodyBytes)),
+				zap.String("request.body", string(b)),
 				zap.Error(err),
 			)
 		}),
@@ -135,7 +134,7 @@ func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*sto
 	if err != nil {
 		logger.Logger().Error(
 			"send request error",
-			zap.String("url", url),
+			zap.String("url", request.URL.String()),
 			zap.Error(err),
 		)
 		return err
