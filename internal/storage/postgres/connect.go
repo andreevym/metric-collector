@@ -198,7 +198,7 @@ func (c *Client) Delete(ctx context.Context, id string, mType string) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	_, err := c.db.ExecContext(rCtx, "DELETE FROM metric WHERE key = $1 and type = $2", id, mType)
+	_, err := c.db.ExecContext(rCtx, "DELETE FROM metric WHERE id = $1 and type = $2", id, mType)
 	if err != nil {
 		return fmt.Errorf("failed delete: %w", err)
 	}
