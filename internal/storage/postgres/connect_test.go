@@ -41,42 +41,124 @@ func TestInsert(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	id := "123"
+	id1 := "1"
 	mType := storage.MTypeCounter
 
 	delta := int64(1)
 
-	insertedMetric := &storage.Metric{
-		ID:    id,
+	insertedMetric1 := &storage.Metric{
+		ID:    id1,
 		MType: storage.MTypeCounter,
 		Delta: &delta,
 	}
-	err = pgClient.Insert(context.TODO(), insertedMetric)
+	err = pgClient.Insert(context.TODO(), insertedMetric1)
 	require.NoError(t, err)
 
-	foundMetric, err := pgClient.SelectByIDAndType(context.TODO(), id, mType)
+	foundMetric, err := pgClient.SelectByIDAndType(context.TODO(), id1, mType)
 	require.NoError(t, err)
 	require.NotNil(t, foundMetric)
-	require.Equal(t, foundMetric.Delta, insertedMetric.Delta)
+	require.Equal(t, foundMetric.Delta, insertedMetric1.Delta)
 
 	delta = int64(2)
-	updatedMetric := &storage.Metric{
-		ID:    id,
+	updatedMetric1 := &storage.Metric{
+		ID:    id1,
 		MType: storage.MTypeCounter,
 		Delta: &delta,
 	}
-	err = pgClient.Update(context.TODO(), updatedMetric)
+	err = pgClient.Update(context.TODO(), updatedMetric1)
 	require.NoError(t, err)
 
-	foundMetric, err = pgClient.SelectByIDAndType(context.TODO(), id, mType)
+	foundMetric, err = pgClient.SelectByIDAndType(context.TODO(), id1, mType)
 	require.NoError(t, err)
 	require.NotNil(t, foundMetric)
-	require.Equal(t, foundMetric.Delta, updatedMetric.Delta)
+	require.Equal(t, foundMetric.Delta, updatedMetric1.Delta)
 
-	err = pgClient.Delete(context.TODO(), id, mType)
+	err = pgClient.Delete(context.TODO(), id1, mType)
 	require.NoError(t, err)
 
-	foundMetric, err = pgClient.SelectByIDAndType(context.TODO(), id, mType)
+	foundMetric, err = pgClient.SelectByIDAndType(context.TODO(), id1, mType)
 	require.EqualError(t, err, "not found value")
 	require.Nil(t, foundMetric)
+
+	pgStorage := postgres.NewPgStorage(pgClient)
+
+	err = pgStorage.Create(context.TODO(), insertedMetric1)
+	require.NoError(t, err)
+
+	foundMetric, err = pgStorage.Read(context.TODO(), id1, mType)
+	require.NoError(t, err)
+	require.NotNil(t, foundMetric)
+	require.Equal(t, foundMetric.Delta, insertedMetric1.Delta)
+
+	err = pgStorage.Update(context.TODO(), updatedMetric1)
+	require.NoError(t, err)
+
+	foundMetric, err = pgStorage.Read(context.TODO(), id1, mType)
+	require.NoError(t, err)
+	require.NotNil(t, foundMetric)
+	require.Equal(t, foundMetric.Delta, updatedMetric1.Delta)
+
+	err = pgStorage.Delete(context.TODO(), id1, mType)
+	require.NoError(t, err)
+
+	foundMetric, err = pgStorage.Read(context.TODO(), id1, mType)
+	require.EqualError(t, err, "not found value")
+	require.Nil(t, foundMetric)
+
+	id2 := "2"
+	delta = int64(1)
+	insertedMetric2 := &storage.Metric{
+		ID:    id2,
+		MType: storage.MTypeCounter,
+		Delta: &delta,
+	}
+	createdMetrics := map[string]storage.MetricR{}
+	createdMetrics[id1] = storage.MetricR{
+		Metric:   insertedMetric1,
+		IsExists: false,
+	}
+	createdMetrics[id2] = storage.MetricR{
+		Metric:   insertedMetric2,
+		IsExists: false,
+	}
+	err = pgStorage.CreateAll(context.TODO(), createdMetrics)
+	require.NoError(t, err)
+
+	foundMetric, err = pgStorage.Read(context.TODO(), id1, mType)
+	require.NoError(t, err)
+	require.NotNil(t, foundMetric)
+	require.Equal(t, foundMetric.Delta, insertedMetric1.Delta)
+
+	foundMetric, err = pgStorage.Read(context.TODO(), id2, mType)
+	require.NoError(t, err)
+	require.NotNil(t, foundMetric)
+	require.Equal(t, foundMetric.Delta, insertedMetric2.Delta)
+
+	delta = int64(2)
+	updatedMetric2 := &storage.Metric{
+		ID:    id2,
+		MType: storage.MTypeCounter,
+		Delta: &delta,
+	}
+	updatedMetrics := map[string]storage.MetricR{}
+	updatedMetrics[id1] = storage.MetricR{
+		Metric:   updatedMetric1,
+		IsExists: true,
+	}
+	updatedMetrics[id2] = storage.MetricR{
+		Metric:   updatedMetric2,
+		IsExists: true,
+	}
+	err = pgStorage.CreateAll(context.TODO(), updatedMetrics)
+	require.NoError(t, err)
+
+	foundMetric, err = pgStorage.Read(context.TODO(), id1, mType)
+	require.NoError(t, err)
+	require.NotNil(t, foundMetric)
+	require.Equal(t, foundMetric.Delta, updatedMetric1.Delta)
+
+	foundMetric, err = pgStorage.Read(context.TODO(), id2, mType)
+	require.NoError(t, err)
+	require.NotNil(t, foundMetric)
+	require.Equal(t, foundMetric.Delta, updatedMetric2.Delta)
 }

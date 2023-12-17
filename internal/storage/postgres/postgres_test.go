@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
-	"strings"
 	"testing"
 	"time"
 
@@ -57,20 +55,6 @@ func initSUConnection(ctx context.Context, hostPort string) error {
 		return conn, err
 	}
 	return nil
-}
-
-func getHostPort(hostPort string) (string, uint16, error) {
-	parts := strings.Split(hostPort, ":")
-	if len(parts) != 2 {
-		return "", 0, fmt.Errorf("got an invalid host port string: %s", hostPort)
-	}
-	portStr := parts[1]
-	port, err := strconv.Atoi(portStr)
-	if err != nil {
-		return "", 0, fmt.Errorf("failed to cast the port %s to an int: %w", portStr, err)
-	}
-
-	return parts[0], uint16(port), nil
 }
 
 func TestMain(m *testing.M) {
