@@ -9,9 +9,11 @@ import (
 	"go.uber.org/zap"
 )
 
+const hashHeaderKey = "HashSHA256"
+
 func (m *Middleware) RequestHashMiddleware(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		agentRequestBodyHash := r.Header.Get("HashSHA256")
+		agentRequestBodyHash := r.Header.Get(hashHeaderKey)
 		if agentRequestBodyHash != "" {
 			bytes, err := io.ReadAll(r.Body)
 			if err != nil {
@@ -53,7 +55,7 @@ func (m *Middleware) ResponseHashMiddleware(h http.Handler) http.Handler {
 				return
 			}
 			encodedResponseBodyHash := hash.Hash(b, m.SecretKey)
-			w.Header().Set("HashSHA256", encodedResponseBodyHash)
+			w.Header().Set(hashHeaderKey, encodedResponseBodyHash)
 		}
 	})
 }
