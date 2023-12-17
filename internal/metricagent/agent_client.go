@@ -31,7 +31,7 @@ func sendLastMemStats(ctx context.Context, secretKey string, ticker *time.Ticker
 	for t := range ticker.C {
 		logger.Logger().Info("sendLastMemStats",
 			zap.String("ticker", t.String()),
-			zap.Int64("pollCount", pollCount),
+			zap.Int64("PollCount", pollCount),
 		)
 		pollCount++
 		metrics, err := collectMetricsByMemStat(lastMemStats, pollCount)
@@ -120,14 +120,6 @@ func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address str
 			// don't need to retry this error
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			logger.Logger().Error("error to send request",
-				zap.Uint("currentAttempt", n),
-				zap.String("request.URL", request.URL.String()),
-				zap.String("request.body", string(b)),
-				zap.Error(err),
-			)
-		}),
 	)
 	if err != nil {
 		logger.Logger().Error(

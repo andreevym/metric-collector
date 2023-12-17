@@ -33,12 +33,6 @@ func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
 			}
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			logger.Logger().Error("error send request to postgres",
-				zap.Uint("currentAttempt", n),
-				zap.Error(err),
-			)
-		}),
 	)
 	return err
 }
@@ -54,12 +48,6 @@ func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]storage.Me
 			}
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			logger.Logger().Error("error send request to postgres",
-				zap.Uint("currentAttempt", n),
-				zap.Error(err),
-			)
-		}),
 	)
 	return err
 }
@@ -76,12 +64,6 @@ func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage
 			}
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			logger.Logger().Error("error send request to postgres",
-				zap.Uint("currentAttempt", n),
-				zap.Error(err),
-			)
-		}),
 	)
 	return m, err
 }
@@ -97,12 +79,6 @@ func (s *PgStorage) Update(ctx context.Context, m *storage.Metric) error {
 			}
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			logger.Logger().Error("error send request to postgres",
-				zap.Uint("currentAttempt", n),
-				zap.Error(err),
-			)
-		}),
 	)
 	return err
 }
@@ -118,12 +94,6 @@ func (s *PgStorage) Delete(ctx context.Context, id string, mType string) error {
 			}
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			logger.Logger().Error("error send request to postgres",
-				zap.Uint("currentAttempt", n),
-				zap.Error(err),
-			)
-		}),
 	)
 	return err
 }

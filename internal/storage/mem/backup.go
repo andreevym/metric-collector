@@ -8,11 +8,6 @@ import (
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/avast/retry-go"
-	"go.uber.org/zap"
-)
-
-const (
-	retryAttempts = 3
 )
 
 func Load(filename string) (map[string]*storage.Metric, error) {
@@ -49,13 +44,6 @@ func Save(filename string, data map[string]*storage.Metric) error {
 			}
 			return nil
 		},
-		retry.OnRetry(func(n uint, err error) {
-			logger.Logger().Error("error open file",
-				zap.Uint("currentAttempt", n),
-				zap.Int("retryAttempts", retryAttempts),
-				zap.Error(err),
-			)
-		}),
 	)
 	if err != nil {
 		logger.Logger().Error(err.Error())

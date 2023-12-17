@@ -39,7 +39,6 @@ func collectMetricsByMemStat(stats *runtime.MemStats, pollCount int64) ([]*stora
 	metrics = mustAppendGaugeMetricUint64(metrics, "StackSys", stats.StackSys)
 	metrics = mustAppendGaugeMetricUint64(metrics, "Sys", stats.Sys)
 	metrics = mustAppendGaugeMetricUint64(metrics, "TotalAlloc", stats.TotalAlloc)
-
 	metrics = append(metrics, &storage.Metric{
 		ID:    "PollCount",
 		MType: storage.MTypeCounter,
