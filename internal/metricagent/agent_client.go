@@ -15,12 +15,9 @@ import (
 	"github.com/andreevym/metric-collector/internal/hash"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
-	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
 )
-
-const retryAttempts = 100000
 
 var (
 	// PollCount (тип counter) — счётчик, увеличивающийся на 1
@@ -123,12 +120,9 @@ func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address str
 			// don't need to retry this error
 			return nil
 		},
-		retry.Attempts(retryAttempts),
-		retry.DelayType(utils.RetryDelayType),
 		retry.OnRetry(func(n uint, err error) {
 			logger.Logger().Error("error to send request",
 				zap.Uint("currentAttempt", n),
-				zap.Int("retryAttempts", retryAttempts),
 				zap.String("request.URL", request.URL.String()),
 				zap.String("request.body", string(b)),
 				zap.Error(err),
