@@ -12,6 +12,7 @@ import (
 
 	"github.com/andreevym/metric-collector/internal/compressor"
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/hash"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/utils"
@@ -29,7 +30,7 @@ var (
 )
 
 // sendLastMemStats send metric to server by ticker and address
-func sendLastMemStats(ctx context.Context, ticker *time.Ticker, address string) {
+func sendLastMemStats(ctx context.Context, secretKey string, ticker *time.Ticker, address string) {
 	for t := range ticker.C {
 		logger.Logger().Info("sendLastMemStats",
 			zap.String("ticker", t.String()),
@@ -42,7 +43,7 @@ func sendLastMemStats(ctx context.Context, ticker *time.Ticker, address string) 
 			break
 		}
 
-		err = sendUpdateMetricsRequest(ctx, address, metrics)
+		err = sendUpdateMetricsRequest(ctx, secretKey, address, metrics)
 		if err != nil {
 			logger.Logger().Error("failed to send update request with last metric", zap.Error(err))
 			break
@@ -50,7 +51,7 @@ func sendLastMemStats(ctx context.Context, ticker *time.Ticker, address string) 
 	}
 }
 
-func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*storage.Metric) error {
+func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address string, metric []*storage.Metric) error {
 	b, err := json.Marshal(metric)
 	if err != nil {
 		logger.Logger().Error("failed to marshal request body", zap.Error(err))
@@ -76,6 +77,9 @@ func sendUpdateMetricsRequest(ctx context.Context, address string, metric []*sto
 	request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 	request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
 	request.Header.Set("Content-Encoding", compressor.ContentEncoding)
+	if len(secretKey) != 0 {
+		request.Header.Set("HashSHA256", hash.Hash(compressedBytes, secretKey))
+	}
 	_ = retry.Do(
 		func() error {
 			var resp *http.Response

@@ -11,11 +11,14 @@ type AgentConfig struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	LogLevel       string `env:"LOG_LEVEL"`
+	SecretKey      string `env:"LOG_LEVEL"`
 }
 
 var (
 	// flagAddr содержит адрес и порт для отправки метрик на сервер
 	flagAddr string
+	// flagSecretKey секретный ключ, если указан, то будем добавлять заголовок HashSHA256 в каждый запрос
+	flagSecretKey string
 	// flagReportInterval частоту отправки метрик на сервер (по умолчанию 10 секунд).
 	flagReportInterval int
 	// flagPollInterval частоту опроса метрик из пакета runtime (по умолчанию 2 секунды).
@@ -26,6 +29,8 @@ var (
 
 func Flags() (*AgentConfig, error) {
 	flag.StringVar(&flagAddr, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&flagSecretKey, "k", "", "secret key, if variable is not empty will "+
+		"make hash from request body and add header HashSHA256 for each http request")
 	flag.IntVar(&flagReportInterval, "r", 10, "report interval (seconds)")
 	flag.IntVar(&flagPollInterval, "p", 2, "poll interval (seconds)")
 	flag.StringVar(&flagLogLevel, "l", "info", "log level")
@@ -41,6 +46,10 @@ func Flags() (*AgentConfig, error) {
 
 	if config.Address == "" {
 		config.Address = flagAddr
+	}
+
+	if config.SecretKey == "" {
+		config.SecretKey = flagSecretKey
 	}
 
 	// Обновлять метрики из пакета runtime с заданной частотой: pollInterval — 2 секунды.

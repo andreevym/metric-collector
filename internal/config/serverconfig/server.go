@@ -18,6 +18,7 @@ type ServerConfig struct {
 	FileStoragePath string
 	Restore         bool
 	DatabaseDsn     string
+	Key             string
 }
 
 type ServerEnvConfig struct {
@@ -37,6 +38,7 @@ type ServerEnvConfig struct {
 	Restore string `env:"RESTORE"`
 	// DatabaseDsn Строка с адресом подключения к БД должна получаться из переменной окружения DATABASE_DSN
 	DatabaseDsn string `env:"DATABASE_DSN"`
+	Key         string `env:"KEY"`
 }
 
 func Flags() (*ServerConfig, error) {
@@ -61,16 +63,18 @@ func Flags() (*ServerConfig, error) {
 		return nil, err
 	}
 
+	if envConfig.Key != "" {
+		cfg.Key = envConfig.Key
+	}
+
 	if envConfig.Address != "" {
 		cfg.Address = envConfig.Address
 	}
 
-	// Логирование, по умолчанию info
 	if envConfig.LogLevel != "" {
 		cfg.LogLevel = envConfig.LogLevel
 	}
 
-	// Логирование, по умолчанию info
 	if envConfig.DatabaseDsn != "" {
 		cfg.DatabaseDsn = envConfig.DatabaseDsn
 	}
@@ -83,12 +87,10 @@ func Flags() (*ServerConfig, error) {
 		cfg.StoreInterval = time.Second * time.Duration(v)
 	}
 
-	// Логирование, по умолчанию info
 	if envConfig.FileStoragePath != "" {
 		cfg.FileStoragePath = envConfig.FileStoragePath
 	}
 
-	// Логирование, по умолчанию info
 	if envConfig.Restore != "" {
 		restore, err := strconv.ParseBool(envConfig.Restore)
 		if err != nil {

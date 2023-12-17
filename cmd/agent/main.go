@@ -26,6 +26,6 @@ func main() {
 	reportDuration := time.Duration(cfg.ReportInterval) * time.Second
 	liveTime := time.Minute
 
-	a := metricagent.NewAgent(cfg.Address, pollDuration, reportDuration, liveTime)
+	a := metricagent.NewAgent(cfg.SecretKey, cfg.Address, pollDuration, reportDuration, liveTime)
 	a.Start()
 }

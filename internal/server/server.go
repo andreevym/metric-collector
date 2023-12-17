@@ -76,13 +76,15 @@ func Start(cfg *serverconfig.ServerConfig) error {
 		metricStorage = pgStorage
 	}
 
+	m := middleware.NewMiddleware(cfg.Key)
 	serviceHandlers := handlers.NewServiceHandlers(metricStorage, pgClient)
-	router := handlers.NewRouter(
+	var router = handlers.NewRouter(
 		serviceHandlers,
-		middleware.GzipRequestMiddleware,
-		middleware.GzipResponseMiddleware,
-		middleware.RequestLogger,
+		m.RequestGzipMiddleware,
+		m.ResponseGzipMiddleware,
+		m.RequestLoggerMiddleware,
+		m.RequestHashMiddleware,
+		m.ResponseHashMiddleware,
 	)
-
 	return http.ListenAndServe(cfg.Address, router)
 }
