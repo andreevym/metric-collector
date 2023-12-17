@@ -76,7 +76,7 @@ func Start(cfg *serverconfig.ServerConfig) error {
 		metricStorage = pgStorage
 	}
 
-	m := middleware.NewMiddleware(cfg.Key)
+	m := middleware.NewMiddleware(cfg.SecretKey)
 	serviceHandlers := handlers.NewServiceHandlers(metricStorage, pgClient)
 	var router = handlers.NewRouter(
 		serviceHandlers,

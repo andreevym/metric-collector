@@ -11,7 +11,7 @@ type AgentConfig struct {
 	ReportInterval int    `env:"REPORT_INTERVAL"`
 	PollInterval   int    `env:"POLL_INTERVAL"`
 	LogLevel       string `env:"LOG_LEVEL"`
-	SecretKey      string `env:"LOG_LEVEL"`
+	SecretKey      string `env:"KEY"`
 }
 
 var (

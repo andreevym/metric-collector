@@ -18,7 +18,7 @@ type ServerConfig struct {
 	FileStoragePath string
 	Restore         bool
 	DatabaseDsn     string
-	Key             string
+	SecretKey       string
 }
 
 type ServerEnvConfig struct {
@@ -38,7 +38,7 @@ type ServerEnvConfig struct {
 	Restore string `env:"RESTORE"`
 	// DatabaseDsn Строка с адресом подключения к БД должна получаться из переменной окружения DATABASE_DSN
 	DatabaseDsn string `env:"DATABASE_DSN"`
-	Key         string `env:"KEY"`
+	SecretKey   string `env:"KEY"`
 }
 
 func Flags() (*ServerConfig, error) {
@@ -50,9 +50,11 @@ func Flags() (*ServerConfig, error) {
 		"(значение 0 делает запись синхронной).")
 	flag.StringVar(&cfg.FileStoragePath, "f", "/tmp/metrics-db.json", "полное имя файла "+
 		"куда сохраняются текущие значения, пустое значение отключает функцию записи на диск.")
-	flag.BoolVar(&cfg.Restore, "r", false, "определяющее, загружать или нет ранее сохранённые значения"+
+	flag.BoolVar(&cfg.Restore, "r", true, "определяющее, загружать или нет ранее сохранённые значения"+
 		" из указанного файла при старте сервера")
 	flag.StringVar(&cfg.DatabaseDsn, "d", "", "строка с адресом подключения к БД")
+	flag.StringVar(&cfg.SecretKey, "k", "", "secret key, if variable is not empty will "+
+		"make hash from request body and add header HashSHA256 for each http request")
 
 	// парсим переданные серверу аргументы в зарегистрированные переменные
 	flag.Parse()
@@ -63,8 +65,8 @@ func Flags() (*ServerConfig, error) {
 		return nil, err
 	}
 
-	if envConfig.Key != "" {
-		cfg.Key = envConfig.Key
+	if envConfig.SecretKey != "" {
+		cfg.SecretKey = envConfig.SecretKey
 	}
 
 	if envConfig.Address != "" {
