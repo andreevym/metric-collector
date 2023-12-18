@@ -32,12 +32,12 @@ func Start(
 	var err error
 
 	if databaseDsn == "" {
-		metricStorage, err = buildMemStorage(fileStoragePath, storeInterval, restore, err)
+		metricStorage, err = buildMemStorage(fileStoragePath, storeInterval, restore)
 		if err != nil {
 			return fmt.Errorf("failed to build mem storage: %w", err)
 		}
 	} else {
-		metricStorage, err = buildPostgresStorage(ctx, databaseDsn, pgClient)
+		pgClient, metricStorage, err = buildPostgresStorage(ctx, databaseDsn)
 		if err != nil {
 			return fmt.Errorf("failed to build postgres storage: %w", err)
 		}
@@ -56,14 +56,14 @@ func Start(
 	return http.ListenAndServe(address, router)
 }
 
-func buildMemStorage(fileStoragePath string, storeInterval int, restore bool, err error) (*mem.Storage, error) {
+func buildMemStorage(fileStoragePath string, storeInterval int, restore bool) (*mem.Storage, error) {
 	memMetricStorage := mem.NewStorage(&mem.BackupOptional{
 		BackupPath:    fileStoragePath,
 		StoreInterval: storeInterval,
 	})
 
 	if restore {
-		err = memMetricStorage.Restore()
+		err := memMetricStorage.Restore()
 		if err != nil {
 			return nil, fmt.Errorf("failed to restore: %w", err)
 		}
@@ -74,17 +74,16 @@ func buildMemStorage(fileStoragePath string, storeInterval int, restore bool, er
 func buildPostgresStorage(
 	ctx context.Context,
 	databaseDsn string,
-	pgClient *postgres.Client,
-) (*postgres.PgStorage, error) {
+) (*postgres.Client, *postgres.PgStorage, error) {
 	pgClient, err := postgres.NewClient(databaseDsn)
 	if err != nil {
-		return nil, fmt.Errorf("can't create database client: %w", err)
+		return nil, nil, fmt.Errorf("can't create database client: %w", err)
 	}
 	defer pgClient.Close()
 
 	err = pgClient.Ping()
 	if err != nil {
-		return nil, fmt.Errorf("can't ping database: %w", err)
+		return nil, nil, fmt.Errorf("can't ping database: %w", err)
 	}
 
 	pgStorage := postgres.NewPgStorage(pgClient)
@@ -106,7 +105,7 @@ func buildPostgresStorage(
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return pgStorage, nil
+	return pgClient, pgStorage, nil
 }
