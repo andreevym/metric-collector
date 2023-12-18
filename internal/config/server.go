@@ -9,7 +9,9 @@ import (
 )
 
 type ServerConfig struct {
-	Address  string `env:"ADDRESS"`
+	// Address адрес и порт для запуска сервера
+	Address string `env:"ADDRESS"`
+	// LogLevel уровень логирования
 	LogLevel string `env:"LOG_LEVEL"`
 	// StoreInterval интервал времени в секундах,
 	// по истечении которого текущие показания сервера сохраняются на диск,
@@ -24,7 +26,9 @@ type ServerConfig struct {
 	Restore bool `env:"RESTORE"`
 	// DatabaseDsn строка с адресом подключения к БД должна получаться из переменной окружения DATABASE_DSN
 	DatabaseDsn string `env:"DATABASE_DSN"`
-	SecretKey   string `env:"KEY"`
+	// SecretKey секретный ключ, если переменная не пустая "+
+	// тогда добавляем в заголовок каждого запроса hash от request body под ключом HashSHA256
+	SecretKey string `env:"KEY"`
 }
 
 func NewServerConfig() *ServerConfig {
@@ -33,7 +37,7 @@ func NewServerConfig() *ServerConfig {
 
 func (c *ServerConfig) Init() *ServerConfig {
 	flag.StringVar(&c.Address, "a", ":8080", "адрес и порт для запуска сервера")
-	flag.StringVar(&c.LogLevel, "l", "info", "уровень логирования агента")
+	flag.StringVar(&c.LogLevel, "l", "info", "уровень логирования")
 	flag.DurationVar(&c.StoreInterval, "i", 300*time.Second, "интервал времени в секундах "+
 		"по истечении которого текущие показания сервера сохраняются на диск "+
 		"(значение 0 делает запись синхронной).")
@@ -42,8 +46,8 @@ func (c *ServerConfig) Init() *ServerConfig {
 	flag.BoolVar(&c.Restore, "r", true, "определяющее, загружать или нет ранее сохранённые значения"+
 		" из указанного файла при старте сервера")
 	flag.StringVar(&c.DatabaseDsn, "d", "", "строка с адресом подключения к БД")
-	flag.StringVar(&c.SecretKey, "k", "", "secret key, if variable is not empty will "+
-		"make hash from request body and add header HashSHA256 for each http request")
+	flag.StringVar(&c.SecretKey, "k", "", "секретный ключ, если переменная не пустая "+
+		"тогда добавляем в заголовок каждого запроса hash от request body под ключом HashSHA256")
 	flag.Parse()
 
 	if err := env.Parse(c); err != nil {

@@ -10,9 +10,9 @@ import (
 type AgentConfig struct {
 	// Address содержит адрес и порт для отправки метрик на сервер
 	Address string `env:"ADDRESS"`
-	// ReportInterval частоту отправки метрик на сервер (по умолчанию 10 секунд).
+	// ReportInterval частоту отправки метрик на сервер
 	ReportInterval int `env:"REPORT_INTERVAL"`
-	// PollInterval частоту опроса метрик из пакета runtime (по умолчанию 2 секунды).
+	// PollInterval частоту опроса метрик из пакета runtime
 	PollInterval int `env:"POLL_INTERVAL"`
 	// LogLevel уровень логирования агента
 	LogLevel string `env:"LOG_LEVEL"`
