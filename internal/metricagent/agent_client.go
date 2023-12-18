@@ -65,7 +65,8 @@ func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address str
 	}
 	_ = retry.Do(
 		func() error {
-			request, err := http.NewRequestWithContext(
+			var request *http.Request
+			request, err = http.NewRequestWithContext(
 				ctx,
 				http.MethodPost,
 				fmt.Sprintf("http://%s/updates/", address),
