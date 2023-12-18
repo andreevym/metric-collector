@@ -32,7 +32,6 @@ func Start(cfg *config.ServerConfig) error {
 		})
 
 		if cfg.Restore {
-			//if cfg.Restore == "true" {
 			err = memMetricStorage.Restore()
 			if err != nil {
 				return fmt.Errorf("failed to restore: %w", err)
