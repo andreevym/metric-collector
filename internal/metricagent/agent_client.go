@@ -81,7 +81,7 @@ func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address str
 			request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
 			request.Header.Set("Content-Encoding", compressor.ContentEncoding)
 			if len(secretKey) != 0 {
-				request.Header.Set("HashSHA256", hash.Hash(compressedBytes, secretKey))
+				request.Header.Set("HashSHA256", hash.EncodeHash(compressedBytes, secretKey))
 			}
 			var resp *http.Response
 			resp, err = http.DefaultClient.Do(request)

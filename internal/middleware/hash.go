@@ -25,7 +25,7 @@ func (m *Middleware) RequestHashMiddleware(h http.Handler) http.Handler {
 				)
 				return
 			}
-			serverRequestBodyHash := hash.Hash(bytes, m.SecretKey)
+			serverRequestBodyHash := hash.EncodeHash(bytes, m.SecretKey)
 			if serverRequestBodyHash != agentRequestBodyHash {
 				w.WriteHeader(http.StatusBadRequest)
 				logger.Logger().Error(
@@ -54,7 +54,7 @@ func (m *Middleware) ResponseHashMiddleware(h http.Handler) http.Handler {
 				)
 				return
 			}
-			encodedResponseBodyHash := hash.Hash(b, m.SecretKey)
+			encodedResponseBodyHash := hash.EncodeHash(b, m.SecretKey)
 			w.Header().Set(hashHeaderKey, encodedResponseBodyHash)
 		}
 	})
