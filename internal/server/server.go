@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/andreevym/metric-collector/internal/config/serverconfig"
+	"github.com/andreevym/metric-collector/internal/config"
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/middleware"
@@ -18,7 +18,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func Start(cfg *serverconfig.ServerConfig) error {
+func Start(cfg *config.ServerConfig) error {
 	ctx := context.Background()
 
 	var metricStorage storage.Storage
@@ -32,6 +32,7 @@ func Start(cfg *serverconfig.ServerConfig) error {
 		})
 
 		if cfg.Restore {
+			//if cfg.Restore == "true" {
 			err = memMetricStorage.Restore()
 			if err != nil {
 				return fmt.Errorf("failed to restore: %w", err)
