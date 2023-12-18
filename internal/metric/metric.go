@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"runtime"
@@ -16,12 +15,13 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
 )
 
 const (
-	defaultRetryCount = 100
+	retryAttempts = 3
 )
 
 var (
@@ -121,10 +121,14 @@ func sendUpdateMetricsRequest(url string, metric []*storage.Metric) error {
 			}
 			return nil
 		},
-		retry.Attempts(defaultRetryCount),
-		retry.Delay(500*time.Millisecond),
+		retry.Attempts(retryAttempts),
+		retry.DelayType(utils.RetryDelayType),
 		retry.OnRetry(func(n uint, err error) {
-			log.Printf("Retrying request after error: %v", err)
+			logger.Logger().Error("error send request to postgres",
+				zap.Uint("currentAttempt", n),
+				zap.Int("retryAttempts", retryAttempts),
+				zap.Error(err),
+			)
 		}),
 	)
 	if err != nil {
