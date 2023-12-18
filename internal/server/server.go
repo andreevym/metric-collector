@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/andreevym/metric-collector/internal/config"
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/middleware"
@@ -18,65 +17,33 @@ import (
 	"go.uber.org/zap"
 )
 
-func Start(cfg *config.ServerConfig) error {
+func Start(
+	databaseDsn string,
+	fileStoragePath string,
+	storeInterval int,
+	restore bool,
+	secretKey string,
+	address string,
+) error {
 	ctx := context.Background()
 
 	var metricStorage storage.Storage
 	var pgClient *postgres.Client
 	var err error
 
-	if cfg.DatabaseDsn == "" {
-		memMetricStorage := mem.NewStorage(&mem.BackupOptional{
-			BackupPath:    cfg.FileStoragePath,
-			StoreInterval: cfg.StoreInterval,
-		})
-
-		if cfg.Restore {
-			err = memMetricStorage.Restore()
-			if err != nil {
-				return fmt.Errorf("failed to restore: %w", err)
-			}
+	if databaseDsn == "" {
+		metricStorage, err = buildMemStorage(fileStoragePath, storeInterval, restore, err)
+		if err != nil {
+			return fmt.Errorf("failed to build mem storage: %w", err)
 		}
-
-		metricStorage = memMetricStorage
 	} else {
-		pgClient, err = postgres.NewClient(cfg.DatabaseDsn)
+		metricStorage, err = buildPostgresStorage(ctx, databaseDsn, pgClient)
 		if err != nil {
-			return fmt.Errorf("can't create database client: %w", err)
+			return fmt.Errorf("failed to build postgres storage: %w", err)
 		}
-		defer pgClient.Close()
-
-		err = pgClient.Ping()
-		if err != nil {
-			return fmt.Errorf("can't ping database: %w", err)
-		}
-
-		pgStorage := postgres.NewPgStorage(pgClient)
-
-		err = filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
-			if !info.IsDir() {
-				logger.Logger().Info("apply migration", zap.String("path", path))
-				bytes, err := os.ReadFile(path)
-				if err != nil {
-					return err
-				}
-
-				err = pgClient.ApplyMigration(ctx, string(bytes))
-				if err != nil {
-					return err
-				}
-			}
-
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		metricStorage = pgStorage
 	}
 
-	m := middleware.NewMiddleware(cfg.SecretKey)
+	m := middleware.NewMiddleware(secretKey)
 	serviceHandlers := handlers.NewServiceHandlers(metricStorage, pgClient)
 	var router = handlers.NewRouter(
 		serviceHandlers,
@@ -86,5 +53,60 @@ func Start(cfg *config.ServerConfig) error {
 		m.RequestHashMiddleware,
 		m.ResponseHashMiddleware,
 	)
-	return http.ListenAndServe(cfg.Address, router)
+	return http.ListenAndServe(address, router)
+}
+
+func buildMemStorage(fileStoragePath string, storeInterval int, restore bool, err error) (*mem.Storage, error) {
+	memMetricStorage := mem.NewStorage(&mem.BackupOptional{
+		BackupPath:    fileStoragePath,
+		StoreInterval: storeInterval,
+	})
+
+	if restore {
+		err = memMetricStorage.Restore()
+		if err != nil {
+			return nil, fmt.Errorf("failed to restore: %w", err)
+		}
+	}
+	return memMetricStorage, nil
+}
+
+func buildPostgresStorage(
+	ctx context.Context,
+	databaseDsn string,
+	pgClient *postgres.Client,
+) (*postgres.PgStorage, error) {
+	pgClient, err := postgres.NewClient(databaseDsn)
+	if err != nil {
+		return nil, fmt.Errorf("can't create database client: %w", err)
+	}
+	defer pgClient.Close()
+
+	err = pgClient.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("can't ping database: %w", err)
+	}
+
+	pgStorage := postgres.NewPgStorage(pgClient)
+
+	err = filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
+		if !info.IsDir() {
+			logger.Logger().Info("apply migration", zap.String("path", path))
+			bytes, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+
+			err = pgClient.ApplyMigration(ctx, string(bytes))
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return pgStorage, nil
 }

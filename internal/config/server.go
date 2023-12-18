@@ -3,7 +3,6 @@ package config
 import (
 	"flag"
 	"fmt"
-	"time"
 
 	"github.com/caarlos0/env/v10"
 )
@@ -16,7 +15,7 @@ type ServerConfig struct {
 	// StoreInterval интервал времени в секундах,
 	// по истечении которого текущие показания сервера сохраняются на диск,
 	// значение 0 делает запись синхронной.
-	StoreInterval time.Duration `env:"STORE_INTERVAL"`
+	StoreInterval int `env:"STORE_INTERVAL"`
 	// FileStoragePath переменная окружения FILE_STORAGE_PATH — полное имя файла,
 	// куда сохраняются текущие значения,
 	// пустое значение отключает функцию записи на диск.
@@ -38,7 +37,7 @@ func NewServerConfig() *ServerConfig {
 func (c *ServerConfig) Init() *ServerConfig {
 	flag.StringVar(&c.Address, "a", ":8080", "адрес и порт для запуска сервера")
 	flag.StringVar(&c.LogLevel, "l", "info", "уровень логирования")
-	flag.DurationVar(&c.StoreInterval, "i", 300*time.Second, "интервал времени в секундах "+
+	flag.IntVar(&c.StoreInterval, "i", 300, "интервал времени в секундах "+
 		"по истечении которого текущие показания сервера сохраняются на диск "+
 		"(значение 0 делает запись синхронной).")
 	flag.StringVar(&c.FileStoragePath, "f", "/tmp/metrics-db.json", "полное имя файла "+

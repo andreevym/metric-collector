@@ -19,7 +19,7 @@ type Storage struct {
 
 type BackupOptional struct {
 	BackupPath    string
-	StoreInterval time.Duration
+	StoreInterval int
 }
 
 func NewStorage(opt *BackupOptional) *Storage {
@@ -112,7 +112,8 @@ func (s *Storage) Backup() error {
 		return nil
 	}
 
-	time.AfterFunc(s.opt.StoreInterval, func() {
+	storeInterval := time.Duration(s.opt.StoreInterval) * time.Second
+	time.AfterFunc(storeInterval, func() {
 		err := Save(s.opt.BackupPath, s.data)
 		if err != nil {
 			logger.Logger().Error("problem to save backup ", zap.Error(err))

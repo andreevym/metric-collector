@@ -19,7 +19,14 @@ func main() {
 		log.Fatal("logger can't be init", cfg.LogLevel, err)
 	}
 
-	err = server.Start(cfg)
+	err = server.Start(
+		cfg.DatabaseDsn,
+		cfg.FileStoragePath,
+		cfg.StoreInterval,
+		cfg.Restore,
+		cfg.SecretKey,
+		cfg.Address,
+	)
 	if err != nil {
 		logger.Logger().Fatal(err.Error())
 	}
