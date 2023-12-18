@@ -1,5 +1,4 @@
 //go:build integration_test
-// +build integration_test
 
 package postgres_test
 
@@ -17,44 +16,57 @@ import (
 )
 
 const (
-	testDBName         = "test"
 	testDBUserName     = "test"
 	testDBUserPassword = "test"
+	containerName      = "integration-test-postgres"
 )
 
 var (
-	getDSN          func() string
-	getSUConnection func() (*pgx.Conn, error)
+	pool     *dockertest.Pool
+	pg       *dockertest.Resource
+	hostPort string
 )
 
-func initGetDSN(hostPort string) {
-	getDSN = func() string {
-		return fmt.Sprintf(
-			"postgres://%s:%s@%s/%s?sslmode=disable",
-			testDBUserName,
-			testDBUserPassword,
-			hostPort,
-			testDBName,
-		)
-	}
+func getDSN(
+	hostPort string,
+	dbName string,
+	dbUserName string,
+	dbUserPassword string,
+) string {
+	return fmt.Sprintf(
+		"postgres://%s:%s@%s/%s?sslmode=disable",
+		dbUserName,
+		dbUserPassword,
+		hostPort,
+		dbName,
+	)
 }
 
-func initSUConnection(ctx context.Context, hostPort string) error {
-	getSUConnection = func() (*pgx.Conn, error) {
-		dsnPostgres := fmt.Sprintf(
-			"postgres://%s:%s@%s/%s?sslmode=disable",
-			"postgres",
-			"postgres",
-			hostPort,
-			"postgres",
-		)
-		conn, err := pgx.Connect(ctx, dsnPostgres)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get a super user connection: %w", err)
-		}
-		return conn, err
+func getSUConnection(ctx context.Context, hostPort string) (*pgx.Conn, error) {
+	dsnPostgres := fmt.Sprintf(
+		"postgres://%s:%s@%s/%s?sslmode=disable",
+		"postgres",
+		"postgres",
+		hostPort,
+		"postgres",
+	)
+	conn, err := pgx.Connect(ctx, dsnPostgres)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get a super user connection: %w", err)
 	}
-	return nil
+	return conn, nil
+}
+
+func downPostgres() {
+	pool, err := dockertest.NewPool("")
+	if err != nil {
+		panic(fmt.Errorf("failed to create new pool for dockertest: %w", err))
+	}
+
+	err = pool.RemoveContainerByName(containerName)
+	if err != nil {
+		panic(fmt.Errorf("failed to remove container by name '%s': %w", containerName, err))
+	}
 }
 
 func TestMain(m *testing.M) {
@@ -66,14 +78,20 @@ func TestMain(m *testing.M) {
 }
 
 func runMain(m *testing.M) (int, error) {
-	pool, err := dockertest.NewPool("")
+	var err error
+	pool, err = dockertest.NewPool("")
 	if err != nil {
-		return 1, err
+		return 1, fmt.Errorf("failed to create new pool for dockertest: %w", err)
 	}
 
-	pg, err := pool.RunWithOptions(
+	err = pool.RemoveContainerByName(containerName)
+	if err != nil {
+		return 1, fmt.Errorf("failed to remove container by name '%s': %w", containerName, err)
+	}
+
+	pg, err = pool.RunWithOptions(
 		&dockertest.RunOptions{
-			Name:       "observer-integration-test",
+			Name:       containerName,
 			Repository: "postgres",
 			Tag:        "15.3",
 			Env: []string{
@@ -88,60 +106,79 @@ func runMain(m *testing.M) (int, error) {
 		},
 	)
 	if err != nil {
-		return 1, err
+		return 1, fmt.Errorf("failed to run postgres container with integration test: %w", err)
 	}
-
-	defer func() {
-		if err := pool.Purge(pg); err != nil {
-			log.Printf("failed to purge the postgres container: %v", err)
-		}
-	}()
-
-	hostPort := pg.GetHostPort("5432/tcp")
-	initGetDSN(hostPort)
-	ctx := context.Background()
-	if err := initSUConnection(ctx, hostPort); err != nil {
-		return 1, err
-	}
-
+	hostPort = pg.GetHostPort("5432/tcp")
 	pool.MaxWait = 10 * time.Second
+
+	err = createTestUser(context.Background(), testDBUserName, testDBUserPassword)
+	if err != nil {
+		return 1, fmt.Errorf("failed to create test user: %w", err)
+	}
+
+	exitCode := m.Run()
+	downPostgres()
+	return exitCode, nil
+}
+
+func createTestUser(
+	ctx context.Context,
+	dbUserName string,
+	dbUserPassword string,
+) error {
+	var err error
 	var conn *pgx.Conn
-	if err := pool.Retry(func() error {
-		conn, err = getSUConnection()
+	if err = pool.Retry(func() error {
+		conn, err = getSUConnection(ctx, hostPort)
 		if err != nil {
 			return fmt.Errorf("failed to connect to the DB: %w", err)
 		}
 		return nil
 	}); err != nil {
-		return 1, err
+		return fmt.Errorf("failed to get su connection: %w", err)
 	}
 
 	defer func() {
-		if err := conn.Close(ctx); err != nil {
+		if err = conn.Close(ctx); err != nil {
 			log.Printf("failed to correctly close the conenction: %v", err)
 		}
 	}()
 
-	if err := createTestDB(ctx, conn); err != nil {
-		return 1, fmt.Errorf("failed to create test db: %w", err)
-	}
-
-	exitCode := m.Run()
-	return exitCode, nil
-}
-
-func createTestDB(ctx context.Context, conn *pgx.Conn) error {
-	_, err := conn.Exec(
+	_, err = conn.Exec(
 		ctx,
 		fmt.Sprintf("CREATE USER %s WITH PASSWORD '%s'",
-			testDBUserName,
-			testDBUserPassword,
+			dbUserName,
+			dbUserPassword,
 		),
 	)
-
 	if err != nil {
 		return fmt.Errorf("failed to create a test user: %w", err)
 	}
+	return nil
+}
+
+func CreateTestDB(
+	ctx context.Context,
+	dbName string,
+	dbUserName string,
+) error {
+	var err error
+	var conn *pgx.Conn
+	if err = pool.Retry(func() error {
+		conn, err = getSUConnection(ctx, hostPort)
+		if err != nil {
+			return fmt.Errorf("failed to connect to the DB: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to get su connection: %w", err)
+	}
+
+	defer func() {
+		if err = conn.Close(ctx); err != nil {
+			log.Printf("failed to correctly close the conenction: %v", err)
+		}
+	}()
 
 	_, err = conn.Exec(
 		ctx,
@@ -152,12 +189,45 @@ func createTestDB(ctx context.Context, conn *pgx.Conn) error {
 			LC_COLLATE = 'en_US.utf8'
 			LC_CTYPE = 'en_US.utf8'
 			`,
-			testDBName,
-			testDBUserName,
+			dbName,
+			dbUserName,
 		),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create a test DB: %w", err)
+		return fmt.Errorf("failed to create a test db: %w", err)
+	}
+
+	return nil
+}
+
+func DropTestDB(
+	ctx context.Context,
+	dbName string,
+) error {
+	var err error
+	var conn *pgx.Conn
+	if err = pool.Retry(func() error {
+		conn, err = getSUConnection(ctx, hostPort)
+		if err != nil {
+			return fmt.Errorf("failed to connect to the DB: %w", err)
+		}
+		return nil
+	}); err != nil {
+		return fmt.Errorf("failed to get su connection: %w", err)
+	}
+
+	defer func() {
+		if err = conn.Close(ctx); err != nil {
+			log.Printf("failed to correctly close the conenction: %v", err)
+		}
+	}()
+
+	_, err = conn.Exec(
+		ctx,
+		fmt.Sprintf("DROP DATABASE %s", dbName),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to drop a test db: %w", err)
 	}
 
 	return nil
