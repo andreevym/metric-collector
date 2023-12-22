@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"strconv"
 
-	"github.com/andreevym/metric-collector/internal/multistorage"
+	"github.com/andreevym/metric-collector/internal/storage"
 )
 
 // PostValueHandler method return metric value by metric type and metric name
@@ -20,52 +19,28 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	metrics := Metrics{}
-	err = json.Unmarshal(bytes, &metrics)
+	m := storage.Metric{}
+	err = json.Unmarshal(bytes, &m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	valStr, err := multistorage.GetMetric(s.storage, metrics.MType, metrics.ID)
-	if err != nil || valStr == "" {
+	foundMetric, err := s.storage.Read(r.Context(), m.ID, m.MType)
+	if err != nil || foundMetric == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	resMetrics := Metrics{
-		ID:    metrics.ID,
-		MType: metrics.MType,
-	}
-	if resMetrics.MType == multistorage.MetricTypeGauge {
-		v, err := strconv.ParseFloat(valStr, 64)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		resMetrics.Value = &v
-	} else if resMetrics.MType == multistorage.MetricTypeCounter {
-		v, err := strconv.ParseInt(valStr, 10, 64)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		resMetrics.Delta = &v
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	resBytes, err := json.Marshal(resMetrics)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	_, err = w.Write(resBytes)
+	bytes, err = json.Marshal(foundMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	_, err = io.WriteString(w, string(bytes))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }

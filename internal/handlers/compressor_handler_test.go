@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -9,57 +10,59 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/compressor"
-	"github.com/andreevym/metric-collector/internal/config/serverconfig"
 	"github.com/andreevym/metric-collector/internal/middleware"
-	"github.com/andreevym/metric-collector/internal/multistorage"
+	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// ...
-
-var emptyServerConfig = &serverconfig.ServerConfig{
-	Address:         "",
-	LogLevel:        "",
-	StoreInterval:   0,
-	FileStoragePath: "",
-	Restore:         false,
-}
-
 func TestGzipCompressionUpdate(t *testing.T) {
-	counterMemStorage := mem.NewStorage()
-	err := counterMemStorage.Create("A", "1")
+	memStorage := mem.NewStorage(nil)
+	i := int64(1)
+	err := memStorage.Create(context.TODO(), &storage.Metric{
+		ID:    "B",
+		MType: storage.MTypeCounter,
+		Delta: &i,
+	})
+	assert.NoError(t, err)
+	err = memStorage.Create(context.TODO(), &storage.Metric{
+		ID:    "A",
+		MType: storage.MTypeCounter,
+		Delta: &i,
+	})
+	assert.NoError(t, err)
+	f := 0.2
+	err = memStorage.Create(context.TODO(), &storage.Metric{
+		ID:    "B",
+		MType: storage.MTypeGauge,
+		Value: &f,
+	})
 	assert.NoError(t, err)
 
-	gaugeMemStorage := mem.NewStorage()
-	err = gaugeMemStorage.Create("B", "0.2")
-	assert.NoError(t, err)
-
-	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
-	require.NoError(t, err)
-	serviceHandlers := NewServiceHandlers(store)
+	serviceHandlers := NewServiceHandlers(memStorage, nil)
+	m := middleware.NewMiddleware("")
 	router := NewRouter(
 		serviceHandlers,
-		middleware.GzipRequestMiddleware,
-		middleware.GzipResponseMiddleware,
+		m.RequestGzipMiddleware,
+		m.ResponseGzipMiddleware,
 	)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
 	t.Run("without_gzip", func(t *testing.T) {
 		valueA := int64(2)
-		requestBody, err := json.Marshal(&Metrics{
+		requestBody, err := json.Marshal(&storage.Metric{
 			ID:    "N",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&Metrics{
+		successBody, err := json.Marshal(&storage.Metric{
 			ID:    "N",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
@@ -73,18 +76,18 @@ func TestGzipCompressionUpdate(t *testing.T) {
 
 	t.Run("sends_gzip", func(t *testing.T) {
 		valueA := int64(2)
-		requestBody, err := json.Marshal(&Metrics{
+		requestBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
 
 		newValueA := int64(3)
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&Metrics{
+		successBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 			Delta: &newValueA,
 		})
 		require.NoError(t, err)
@@ -101,19 +104,20 @@ func TestGzipCompressionUpdate(t *testing.T) {
 	})
 
 	t.Run("accepts_gzip", func(t *testing.T) {
-		valueA := int64(2)
-		requestBody, err := json.Marshal(&Metrics{
+		valueRequest := int64(2)
+		requestBody, err := json.Marshal(&storage.Metric{
 			ID:    "B",
-			MType: "counter",
-			Delta: &valueA,
+			MType: storage.MTypeCounter,
+			Delta: &valueRequest,
 		})
 		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&Metrics{
+		valueAfterUpdate := int64(3)
+		successBody, err := json.Marshal(&storage.Metric{
 			ID:    "B",
-			MType: "counter",
-			Delta: &valueA,
+			MType: storage.MTypeCounter,
+			Delta: &valueAfterUpdate,
 		})
 		require.NoError(t, err)
 
@@ -134,37 +138,36 @@ func TestGzipCompressionUpdate(t *testing.T) {
 }
 
 func TestGzipCompressionValue(t *testing.T) {
-	counterMemStorage := mem.NewStorage()
-	err := counterMemStorage.Create("A", "1")
+	memStorage := mem.NewStorage(nil)
+	valueA := int64(1)
+	err := memStorage.Create(context.TODO(), &storage.Metric{
+		ID:    "A",
+		MType: storage.MTypeCounter,
+		Delta: &valueA,
+	})
 	assert.NoError(t, err)
 
-	gaugeMemStorage := mem.NewStorage()
-	err = gaugeMemStorage.Create("B", "0.2")
-	assert.NoError(t, err)
-
-	store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
-	require.NoError(t, err)
-	serviceHandlers := NewServiceHandlers(store)
+	serviceHandlers := NewServiceHandlers(memStorage, nil)
+	m := middleware.NewMiddleware("")
 	router := NewRouter(
 		serviceHandlers,
-		middleware.GzipResponseMiddleware,
-		middleware.GzipRequestMiddleware,
+		m.ResponseGzipMiddleware,
+		m.RequestGzipMiddleware,
 	)
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
 	t.Run("without_gzip", func(t *testing.T) {
-		requestBody, err := json.Marshal(&Metrics{
+		requestBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 		})
 		require.NoError(t, err)
 
-		valueA := int64(1)
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&Metrics{
+		successBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
@@ -179,17 +182,17 @@ func TestGzipCompressionValue(t *testing.T) {
 	})
 
 	t.Run("sends_gzip", func(t *testing.T) {
-		requestBody, err := json.Marshal(&Metrics{
+		requestBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 		})
 		require.NoError(t, err)
 
 		valueA := int64(1)
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&Metrics{
+		successBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
@@ -206,17 +209,17 @@ func TestGzipCompressionValue(t *testing.T) {
 	})
 
 	t.Run("accepts_gzip", func(t *testing.T) {
-		requestBody, err := json.Marshal(&Metrics{
+		requestBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 		})
 		require.NoError(t, err)
 
 		valueA := int64(1)
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&Metrics{
+		successBody, err := json.Marshal(&storage.Metric{
 			ID:    "A",
-			MType: "counter",
+			MType: storage.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)

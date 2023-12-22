@@ -1,10 +1,11 @@
-package backup
+package mem
 
 import (
 	"os"
 	"strconv"
 	"testing"
 
+	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,10 +16,16 @@ func TestEndToEndBackup(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	data := make(map[string][]string)
+	data := make(map[string]*storage.Metric)
 	for i := 0; i < 1000; i++ {
-		formatInt := strconv.FormatInt(int64(i), 10)
-		data[formatInt] = []string{formatInt}
+		delta := int64(i)
+		id := strconv.Itoa(i)
+		data[id] = &storage.Metric{
+			ID:    id,
+			MType: storage.MTypeCounter,
+			Delta: &delta,
+			Value: nil,
+		}
 	}
 
 	err = Save(f.Name(), data)

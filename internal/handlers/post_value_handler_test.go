@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	bytes2 "bytes"
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -9,13 +10,13 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
-	"github.com/andreevym/metric-collector/internal/multistorage"
+	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestGetHandler(t *testing.T) {
+func TestPostHandler(t *testing.T) {
 	type want struct {
 		contentType string
 		resp        string
@@ -30,7 +31,7 @@ func TestGetHandler(t *testing.T) {
 		createGauge   map[string]string
 		updateCounter map[string]string
 		updateGauge   map[string]string
-		metrics       *handlers.Metrics
+		metrics       *storage.Metric
 	}{
 		{
 			name: "success get counter",
@@ -48,9 +49,9 @@ func TestGetHandler(t *testing.T) {
 				"test2": "4",
 			},
 			request: "/value/",
-			metrics: &handlers.Metrics{
+			metrics: &storage.Metric{
 				ID:    "test",
-				MType: multistorage.MetricTypeCounter,
+				MType: storage.MTypeCounter,
 			},
 			httpMethod: http.MethodPost,
 		},
@@ -70,9 +71,9 @@ func TestGetHandler(t *testing.T) {
 				"test2": "4",
 			},
 			request: "/value/",
-			metrics: &handlers.Metrics{
+			metrics: &storage.Metric{
 				ID:    "test",
-				MType: multistorage.MetricTypeGauge,
+				MType: storage.MTypeGauge,
 			},
 			httpMethod: http.MethodPost,
 		},
@@ -93,9 +94,9 @@ func TestGetHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
+			metrics: &storage.Metric{
 				ID:    "test",
-				MType: multistorage.MetricTypeCounter,
+				MType: storage.MTypeCounter,
 			},
 		},
 		{
@@ -115,9 +116,9 @@ func TestGetHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
+			metrics: &storage.Metric{
 				ID:    "test",
-				MType: multistorage.MetricTypeGauge,
+				MType: storage.MTypeGauge,
 			},
 		},
 		{
@@ -129,9 +130,9 @@ func TestGetHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
+			metrics: &storage.Metric{
 				ID:    "test",
-				MType: multistorage.MetricTypeGauge,
+				MType: storage.MTypeGauge,
 			},
 		},
 		{
@@ -143,9 +144,9 @@ func TestGetHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
+			metrics: &storage.Metric{
 				ID:    "test",
-				MType: multistorage.MetricTypeCounter,
+				MType: storage.MTypeCounter,
 			},
 		},
 		{
@@ -157,7 +158,7 @@ func TestGetHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &handlers.Metrics{
+			metrics: &storage.Metric{
 				ID:    "test",
 				MType: "TestGauge",
 			},
@@ -165,31 +166,57 @@ func TestGetHandler(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			counterMemStorage := mem.NewStorage()
+			memStorage := mem.NewStorage(nil)
 			for k, v := range test.createCounter {
-				err := counterMemStorage.Create(k, v)
+				i, _ := strconv.ParseInt(v, 10, 64)
+				metric := &storage.Metric{
+					ID:    k,
+					MType: storage.MTypeCounter,
+					Delta: &i,
+					Value: nil,
+				}
+				err := memStorage.Create(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
-			gaugeMemStorage := mem.NewStorage()
 			for k, v := range test.createGauge {
-				err := gaugeMemStorage.Create(k, v)
+				i, _ := strconv.ParseFloat(v, 64)
+				metric := &storage.Metric{
+					ID:    k,
+					MType: storage.MTypeGauge,
+					Delta: nil,
+					Value: &i,
+				}
+				err := memStorage.Create(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
 			for k, v := range test.updateCounter {
-				err := counterMemStorage.Update(k, []string{v})
+				i, _ := strconv.ParseInt(v, 10, 64)
+				metric := &storage.Metric{
+					ID:    k,
+					MType: storage.MTypeCounter,
+					Delta: &i,
+					Value: nil,
+				}
+				err := memStorage.Update(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
 			for k, v := range test.updateGauge {
-				err := gaugeMemStorage.Update(k, []string{v})
+				i, _ := strconv.ParseFloat(v, 64)
+				metric := &storage.Metric{
+					ID:    k,
+					MType: storage.MTypeGauge,
+					Delta: nil,
+					Value: &i,
+				}
+				err := memStorage.Update(context.TODO(), metric)
 				assert.NoError(t, err)
 			}
-			store, err := multistorage.NewStorage(counterMemStorage, gaugeMemStorage, emptyServerConfig)
-			require.NoError(t, err)
-			serviceHandlers := handlers.NewServiceHandlers(store)
+			serviceHandlers := handlers.NewServiceHandlers(memStorage, nil)
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
 			var reqBody []byte
+			var err error
 			if test.metrics != nil {
 				reqBody, err = json.Marshal(test.metrics)
 				require.NoError(t, err)
@@ -202,16 +229,16 @@ func TestGetHandler(t *testing.T) {
 			if test.want.resp != "" {
 				assert.Equal(t, test.want.contentType, contentType)
 
-				respMetrics := handlers.Metrics{}
+				respMetrics := storage.Metric{}
 				err = json.Unmarshal([]byte(get), &respMetrics)
 				require.NoError(t, err)
 
 				if test.metrics != nil {
-					if test.metrics.MType == multistorage.MetricTypeGauge {
+					if test.metrics.MType == storage.MTypeGauge {
 						v, err := strconv.ParseFloat(test.want.resp, 64)
 						require.NoError(t, err)
 						test.metrics.Value = &v
-					} else if test.metrics.MType == multistorage.MetricTypeCounter {
+					} else if test.metrics.MType == storage.MTypeCounter {
 						v, err := strconv.ParseInt(test.want.resp, 10, 64)
 						require.NoError(t, err)
 						test.metrics.Delta = &v

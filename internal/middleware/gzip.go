@@ -9,7 +9,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/compressor"
 )
 
-func GzipResponseMiddleware(next http.Handler) http.Handler {
+func (m *Middleware) ResponseGzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
@@ -27,7 +27,7 @@ func GzipResponseMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func GzipRequestMiddleware(next http.Handler) http.Handler {
+func (m *Middleware) RequestGzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			next.ServeHTTP(w, r)
