@@ -23,6 +23,15 @@ func main() {
 	reportDuration := time.Duration(cfg.ReportInterval) * time.Second
 	liveTime := time.Minute
 
-	a := metricagent.NewAgent(cfg.SecretKey, cfg.Address, pollDuration, reportDuration, liveTime)
-	a.Start()
+	err = metricagent.NewAgent(
+		cfg.SecretKey,
+		cfg.Address,
+		pollDuration,
+		reportDuration,
+		liveTime,
+		cfg.RateLimit,
+	).Run()
+	if err != nil {
+		log.Fatal("failed to execute agent", err)
+	}
 }

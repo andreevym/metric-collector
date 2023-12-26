@@ -1,8 +1,11 @@
 package metricagent
 
 import (
-	"context"
+	"fmt"
+	"sync"
 	"time"
+
+	"golang.org/x/net/context"
 )
 
 type Agent struct {
@@ -11,6 +14,7 @@ type Agent struct {
 	ReportDuration time.Duration
 	LiveTime       time.Duration
 	SecretKey      string
+	RateLimit      int
 }
 
 func NewAgent(
@@ -19,6 +23,7 @@ func NewAgent(
 	pollDuration time.Duration,
 	reportDuration time.Duration,
 	liveTime time.Duration,
+	rateLimit int,
 ) *Agent {
 	return &Agent{
 		Address:        address,
@@ -26,17 +31,28 @@ func NewAgent(
 		ReportDuration: reportDuration,
 		LiveTime:       liveTime,
 		SecretKey:      secretKey,
+		RateLimit:      rateLimit,
 	}
 }
 
-func (a Agent) Start() {
-	ctx := context.Background()
-	tickerPoll := time.NewTicker(a.PollDuration)
-	go pollLastMemStatByTicker(tickerPoll)
-
-	tickerReport := time.NewTicker(a.ReportDuration)
-	go sendLastMemStats(ctx, a.SecretKey, tickerReport, a.Address)
-
+func (a Agent) Run() error {
 	// время жизни клиента для сбора метрик
-	time.Sleep(a.LiveTime)
+	ctx, cancelFunc := context.WithTimeout(context.Background(), a.LiveTime)
+	defer cancelFunc()
+	metricsCh, err := collectMetric(ctx, a.PollDuration, a.RateLimit)
+	if err != nil {
+		return fmt.Errorf("failed to collect metric: %w", err)
+	}
+
+	wg := sync.WaitGroup{}
+	for i := 0; i < a.RateLimit; i++ {
+		wg.Add(1)
+		go func() {
+			// откладываем уменьшение счетчика в WaitGroup, когда завершится горутина
+			defer wg.Done()
+			sendMetric(ctx, metricsCh, a.SecretKey, a.ReportDuration, a.Address)
+		}()
+	}
+	wg.Wait()
+	return nil
 }

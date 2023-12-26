@@ -1,7 +1,6 @@
 package handlers_test
 
 import (
-	bytes2 "bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -10,11 +9,14 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const secretKey = "testpassword"
 
 func TestPostHandler(t *testing.T) {
 	type want struct {
@@ -212,7 +214,8 @@ func TestPostHandler(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			serviceHandlers := handlers.NewServiceHandlers(memStorage, nil)
-			router := handlers.NewRouter(serviceHandlers)
+			m := middleware.NewMiddleware(secretKey)
+			router := handlers.NewRouter(serviceHandlers, m.RequestHashMiddleware)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
 			var reqBody []byte
@@ -223,14 +226,14 @@ func TestPostHandler(t *testing.T) {
 			} else {
 				reqBody = []byte{}
 			}
-			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, bytes2.NewBuffer(reqBody))
+			statusCode, contentType, got := testRequest(t, ts, test.httpMethod, test.request, reqBody)
 			assert.Equal(t, test.want.statusCode, statusCode)
 
 			if test.want.resp != "" {
 				assert.Equal(t, test.want.contentType, contentType)
 
 				respMetrics := storage.Metric{}
-				err = json.Unmarshal([]byte(get), &respMetrics)
+				err = json.Unmarshal([]byte(got), &respMetrics)
 				require.NoError(t, err)
 
 				if test.metrics != nil {
@@ -246,7 +249,7 @@ func TestPostHandler(t *testing.T) {
 
 					bytes, err := json.Marshal(test.metrics)
 					require.NoError(t, err)
-					assert.JSONEq(t, string(bytes), get)
+					assert.JSONEq(t, string(bytes), got)
 				}
 			}
 		})

@@ -9,7 +9,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/storage"
 )
 
-func collectMetricsByMemStat(stats *runtime.MemStats, pollCount int64) ([]*storage.Metric, error) {
+func mapMemStatToMetrics(stats *runtime.MemStats) ([]*storage.Metric, error) {
 	metrics := make([]*storage.Metric, 0)
 	metrics = mustAppendGaugeMetricFloat64(metrics, "RandomValue", rand.Float64())
 	metrics = mustAppendGaugeMetricUint64(metrics, "Alloc", stats.Alloc)
@@ -39,12 +39,6 @@ func collectMetricsByMemStat(stats *runtime.MemStats, pollCount int64) ([]*stora
 	metrics = mustAppendGaugeMetricUint64(metrics, "StackSys", stats.StackSys)
 	metrics = mustAppendGaugeMetricUint64(metrics, "Sys", stats.Sys)
 	metrics = mustAppendGaugeMetricUint64(metrics, "TotalAlloc", stats.TotalAlloc)
-
-	metrics = append(metrics, &storage.Metric{
-		ID:    "PollCount",
-		MType: storage.MTypeCounter,
-		Delta: &pollCount,
-	})
 	return metrics, nil
 }
 

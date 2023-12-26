@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 	"time"
 
 	"github.com/andreevym/metric-collector/internal/compressor"
@@ -20,38 +19,40 @@ import (
 	"go.uber.org/zap"
 )
 
-const retryAttempts = 100000
-
-var (
-	// PollCount (тип counter) — счётчик, увеличивающийся на 1
-	// при каждом обновлении метрики из пакета runtime (на каждый pollInterval — см. ниже).
-	pollCount    int64
-	lastMemStats *runtime.MemStats
-)
+const retryAttempts = 3
 
 // sendLastMemStats send metric to server by ticker and address
-func sendLastMemStats(ctx context.Context, secretKey string, ticker *time.Ticker, address string) {
-	for t := range ticker.C {
-		logger.Logger().Info("sendLastMemStats",
-			zap.String("ticker", t.String()),
-			zap.Int64("pollCount", pollCount),
-		)
-		pollCount++
-		metrics, err := collectMetricsByMemStat(lastMemStats, pollCount)
-		if err != nil {
-			logger.Logger().Error("failed to collect metrics by mem stat", zap.Error(err))
-			break
-		}
-
-		err = sendUpdateMetricsRequest(ctx, secretKey, address, metrics)
-		if err != nil {
-			logger.Logger().Error("failed to send update request with last metric", zap.Error(err))
-			break
+func sendMetric(
+	ctx context.Context,
+	inputCh chan []*storage.Metric,
+	secretKey string,
+	reportDuration time.Duration,
+	address string,
+) {
+	ticker := time.NewTicker(reportDuration)
+	for range ticker.C {
+		select {
+		case <-ctx.Done():
+			return
+		case metrics, ok := <-inputCh:
+			if ok {
+				err := sendRequest(ctx, secretKey, address, metrics)
+				if err != nil {
+					logger.Logger().Error("failed to send request", zap.Error(err))
+					break
+				}
+			}
+		default:
 		}
 	}
 }
 
-func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address string, metric []*storage.Metric) error {
+func sendRequest(
+	ctx context.Context,
+	secretKey string,
+	address string,
+	metric []*storage.Metric,
+) error {
 	b, err := json.Marshal(metric)
 	if err != nil {
 		logger.Logger().Error("failed to marshal request body", zap.Error(err))
@@ -66,8 +67,7 @@ func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address str
 	_ = retry.Do(
 		func() error {
 			var request *http.Request
-			request, err = http.NewRequestWithContext(
-				ctx,
+			request, err = http.NewRequest(
 				http.MethodPost,
 				fmt.Sprintf("http://%s/updates/", address),
 				bytes.NewBuffer(compressedBytes),
@@ -131,6 +131,7 @@ func sendUpdateMetricsRequest(ctx context.Context, secretKey string, address str
 				zap.Error(err),
 			)
 		}),
+		retry.Context(ctx),
 	)
 	if err != nil {
 		logger.Logger().Error(

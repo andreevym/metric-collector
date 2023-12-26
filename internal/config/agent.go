@@ -18,6 +18,7 @@ type AgentConfig struct {
 	LogLevel string `env:"LOG_LEVEL"`
 	// SecretKey секретный ключ, если указан, то будем добавлять заголовок HashSHA256 в каждый запрос
 	SecretKey string `env:"KEY"`
+	RateLimit int    `env:"RATE_LIMIT"`
 }
 
 func NewAgentConfig() *AgentConfig {
@@ -31,6 +32,7 @@ func (c *AgentConfig) Init() *AgentConfig {
 	flag.IntVar(&c.ReportInterval, "r", 10, "report interval (seconds)")
 	flag.IntVar(&c.PollInterval, "p", 2, "poll interval (seconds)")
 	flag.StringVar(&c.LogLevel, "l", "info", "log level")
+	flag.IntVar(&c.RateLimit, "i", 1, "количество одновременно исходящих запросов на сервер")
 	flag.Parse()
 
 	if err := env.Parse(c); err != nil {

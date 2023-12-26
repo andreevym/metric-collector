@@ -1,7 +1,6 @@
 package handlers_test
 
 import (
-	bytes2 "bytes"
 	"encoding/json"
 	"math/rand"
 	"net/http"
@@ -33,7 +32,7 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 			Value: &val1,
 		})
 		require.NoError(t, err)
-		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
+		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/update/", bytes)
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
 		assert.Equal(t, string(bytes), get)
@@ -44,7 +43,7 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 			Value: &val2,
 		})
 		require.NoError(t, err)
-		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
+		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/update/", bytes)
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, handlers.UpdateMetricContentType, contentType)
 		assert.Equal(t, string(bytes), get)
@@ -53,7 +52,7 @@ func TestHandler_GaugeEndToEnd(t *testing.T) {
 			MType: storage.MTypeGauge,
 		})
 		require.NoError(t, err)
-		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes2.NewBuffer(bytes))
+		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes)
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.Equal(t, handlers.ValueMetricContentType, contentType)
 		bytes, err = json.Marshal(storage.Metric{
@@ -83,7 +82,7 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 			Delta: &val1,
 		})
 		require.NoError(t, err)
-		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
+		statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/update/", bytes)
 		require.Equal(t, http.StatusOK, statusCode)
 		require.Equal(t, handlers.UpdateMetricContentType, contentType)
 		require.Equal(t, string(bytes), get)
@@ -103,7 +102,7 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/update/", bytes2.NewBuffer(bytes))
+		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/update/", bytes)
 		require.Equal(t, http.StatusOK, statusCode)
 		require.Equal(t, handlers.UpdateMetricContentType, contentType)
 		require.Equal(t, string(resBytes), get)
@@ -112,7 +111,7 @@ func TestHandler_CounterEndToEnd(t *testing.T) {
 			MType: storage.MTypeCounter,
 		})
 		require.NoError(t, err)
-		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes2.NewBuffer(bytes))
+		statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes)
 		require.Equal(t, http.StatusOK, statusCode)
 		require.Equal(t, handlers.ValueMetricContentType, contentType)
 		require.JSONEq(t, string(resBytes), get)
