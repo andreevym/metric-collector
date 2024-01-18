@@ -11,6 +11,8 @@ import (
 	"testing"
 
 	"github.com/andreevym/metric-collector/internal/handlers"
+	"github.com/andreevym/metric-collector/internal/hash"
+	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/stretchr/testify/assert"
@@ -120,15 +122,13 @@ func TestUpdateHandler(t *testing.T) {
 			router := handlers.NewRouter(serviceHandlers)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
-			var reqBody *bytes.Buffer
+			var bytes []byte
 			if test.metrics != nil {
 				marshal, err := json.Marshal(test.metrics)
 				require.NoError(t, err)
-				reqBody = bytes.NewBuffer(marshal)
-			} else {
-				reqBody = bytes.NewBuffer([]byte{})
+				bytes = marshal
 			}
-			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, reqBody)
+			statusCode, contentType, get := testRequest(t, ts, test.httpMethod, test.request, bytes)
 			assert.Equal(t, test.want.statusCode, statusCode)
 			assert.Equal(t, test.want.contentType, contentType)
 			assert.Equal(t, test.want.resp, get)
@@ -136,9 +136,25 @@ func TestUpdateHandler(t *testing.T) {
 	}
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, path string, reqBody io.Reader) (int, string, string) {
-	req, err := http.NewRequest(method, ts.URL+path, reqBody)
+func signedTestRequest(
+	t *testing.T,
+	ts *httptest.Server,
+	method, path string,
+	reqBody []byte,
+	secretKey string,
+) (int, string, string) {
+	headerMap := make(map[string]string)
+	if secretKey != "" && len(reqBody) > 0 {
+		encodeHash := hash.EncodeHash(reqBody, secretKey)
+		headerMap[middleware.HashHeaderKey] = encodeHash
+	}
+
+	req, err := http.NewRequest(method, ts.URL+path, bytes.NewBuffer(reqBody))
 	require.NoError(t, err)
+
+	for k, v := range headerMap {
+		req.Header.Add(k, v)
+	}
 
 	resp, err := ts.Client().Do(req)
 	require.NoError(t, err)
@@ -151,6 +167,16 @@ func testRequest(t *testing.T, ts *httptest.Server, method, path string, reqBody
 
 	contentType := resp.Header.Get("Content-Type")
 	return resp.StatusCode, contentType, string(respBody)
+}
+
+func testRequest(
+	t *testing.T,
+	ts *httptest.Server,
+	method string,
+	path string,
+	reqBody []byte,
+) (int, string, string) {
+	return signedTestRequest(t, ts, method, path, reqBody, "")
 }
 
 func TestUpdates(t *testing.T) {
@@ -182,15 +208,14 @@ func TestUpdates(t *testing.T) {
 		},
 	}
 
-	b, err := json.Marshal(metrics)
+	bytes, err := json.Marshal(metrics)
 	require.NoError(t, err)
-	reqBody := bytes.NewBuffer(b)
 	memStorage := mem.NewStorage(nil)
 	serviceHandlers := handlers.NewServiceHandlers(memStorage, nil)
 	router := handlers.NewRouter(serviceHandlers)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
-	statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/updates/", reqBody)
+	statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/updates/", bytes)
 	assert.Equal(t, statusCode, statusCode)
 	assert.Equal(t, contentType, contentType)
 	assert.Equal(t, "", get)
