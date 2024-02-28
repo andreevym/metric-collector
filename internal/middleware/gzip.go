@@ -7,8 +7,13 @@ import (
 	"strings"
 
 	"github.com/andreevym/metric-collector/internal/compressor"
+	"github.com/andreevym/metric-collector/internal/logger"
+	"go.uber.org/zap"
 )
 
+// ResponseGzipMiddleware returns an HTTP middleware that decompresses the request body
+// if it is encoded with gzip. If the request is not gzip-encoded, it passes the request
+// to the next handler in the chain without modification.
 func (m *Middleware) ResponseGzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
@@ -16,10 +21,19 @@ func (m *Middleware) ResponseGzipMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		oldBody := r.Body
-		defer oldBody.Close()
+		defer func(oldBody io.ReadCloser) {
+			err := oldBody.Close()
+			if err != nil {
+				logger.Logger().Error("oldBody.Close", zap.Error(err))
+			}
+		}(oldBody)
 		zr, err := gzip.NewReader(oldBody)
 		if err != nil {
-			io.WriteString(w, err.Error()) //nolint
+			_, err = io.WriteString(w, err.Error())
+			if err != nil {
+				logger.Logger().Error("io.WriteString", zap.Error(err))
+				return
+			} //nolint
 			return
 		}
 		r.Body = zr
@@ -27,6 +41,9 @@ func (m *Middleware) ResponseGzipMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// RequestGzipMiddleware returns an HTTP middleware that compresses the response body
+// with gzip if the client accepts gzip encoding. If the client does not accept gzip encoding,
+// it passes the response to the next handler in the chain without modification.
 func (m *Middleware) RequestGzipMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
@@ -35,10 +52,19 @@ func (m *Middleware) RequestGzipMiddleware(next http.Handler) http.Handler {
 		}
 		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			io.WriteString(w, err.Error()) //nolint
+			_, err = io.WriteString(w, err.Error())
+			if err != nil {
+				logger.Logger().Error("io.WriteString", zap.Error(err))
+				return
+			} //nolint
 			return
 		}
-		defer gz.Close()
+		defer func(gz *gzip.Writer) {
+			err := gz.Close()
+			if err != nil {
+				logger.Logger().Error("gz.Close", zap.Error(err))
+			}
+		}(gz)
 		w.Header().Set("Content-Encoding", "gzip")
 		next.ServeHTTP(compressor.GzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})

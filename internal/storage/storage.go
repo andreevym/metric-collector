@@ -1,3 +1,4 @@
+// Package storage provides interfaces and implementations for metric storage.
 package storage
 
 import (
@@ -6,6 +7,10 @@ import (
 	"fmt"
 )
 
+// ErrValueNotFound indicates that the requested metric value was not found.
+var ErrValueNotFound = errors.New("not found value")
+
+// Storage defines the interface for metric storage operations.
 type Storage interface {
 	CreateAll(ctx context.Context, metrics map[string]MetricR) error
 	Create(ctx context.Context, m *Metric) error
@@ -14,23 +19,33 @@ type Storage interface {
 	Delete(ctx context.Context, id string, mType string) error
 }
 
+// MetricR represents a metric along with a flag indicating its existence in the storage.
 type MetricR struct {
-	Metric   *Metric
-	IsExists bool
+	Metric   *Metric // Metric information
+	IsExists bool    // Flag indicating whether the metric already exists in the storage
 }
 
+// Metric represents a metric with its ID, type, delta, and value.
+type Metric struct {
+	ID    string   `json:"id"`              // Metric ID
+	MType string   `json:"type"`            // Metric type: gauge or counter
+	Delta *int64   `json:"delta,omitempty"` // Delta value (applicable for counter type)
+	Value *float64 `json:"value,omitempty"` // Value (applicable for gauge type)
+}
+
+// MType constants represent different metric types.
 const (
 	MTypeGauge   string = "gauge"
 	MTypeCounter string = "counter"
 )
 
-type Metric struct {
-	ID    string   `json:"id"`              // Имя метрики
-	MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-	Delta *int64   `json:"delta,omitempty"` // Значение метрики в случае передачи counter
-	Value *float64 `json:"value,omitempty"` // Значение метрики в случае передачи gauge
-}
-
+// SaveAllMetric saves multiple metrics in the storage.
+// It takes a context, a storage instance, and a slice of Metric pointers.
+// Metrics are grouped by their ID and type to avoid duplication.
+// If a metric with the same ID and type already exists in the storage and its type is counter,
+// the delta of the existing metric and the new metric are summed up.
+// After processing the metrics, they are saved in the storage using the CreateAll method.
+// If any error occurs during the process, an error is returned.
 func SaveAllMetric(ctx context.Context, s Storage, metrics []*Metric) error {
 	if len(metrics) == 0 {
 		return nil
