@@ -9,12 +9,14 @@ import (
 	"os"
 	"path/filepath"
 
+	_ "github.com/andreevym/metric-collector/docs"
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/postgres"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 )
 
@@ -132,6 +134,11 @@ func Start(
 		m.RequestHashMiddleware,
 		m.ResponseHashMiddleware,
 	)
+
+	// Serve Swagger UI
+	router.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"), //The url pointing to API definition
+	))
 
 	// Start the HTTP server and listen for incoming requests on the specified address
 	return http.ListenAndServe(address, router)

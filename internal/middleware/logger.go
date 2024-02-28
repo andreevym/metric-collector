@@ -22,7 +22,7 @@ import (
 // Example:
 //
 //	// Create a new middleware instance
-//	middleware := NewMiddleware()
+//	middleware := NewMiddleware("my-secret-key")
 //
 //	// Wrap an existing HTTP handler with the RequestLoggerMiddleware
 //	wrappedHandler := middleware.RequestLoggerMiddleware(myHandler)

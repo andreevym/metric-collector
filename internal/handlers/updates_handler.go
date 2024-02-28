@@ -23,7 +23,7 @@ const (
 // Supported metric types are 'gauge' and 'counter'.
 // @Accept json
 // @Produce json
-// @Param metrics body []Metric true "Array of metrics to insert or update"
+// @Param metrics body []storage.Metric true "Array of metrics to insert or update"
 // @Success 200 {string} string "Metrics inserted or updated successfully"
 // @Failure 400 {string} string "Bad request. Invalid JSON payload or metric parameters"
 // @Router /updates [post]

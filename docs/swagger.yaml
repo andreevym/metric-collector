@@ -1,0 +1,163 @@
+basePath: /v2
+definitions:
+  storage.Metric:
+    properties:
+      delta:
+        description: Delta value (applicable for counter type)
+        type: integer
+      id:
+        description: Metric ID
+        type: string
+      type:
+        description: 'Metric type: gauge or counter'
+        type: string
+      value:
+        description: Value (applicable for gauge type)
+        type: number
+    type: object
+host: petstore.swagger.io
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server Petstore server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Swagger Example API
+  version: "1.0"
+paths:
+  /ping:
+    get:
+      description: Pings the database to check its connectivity
+      responses:
+        "200":
+          description: Database ping successful
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Ping database
+  /update/{metricType}/{metricName}/{metricValue}:
+    post:
+      description: Inserts or updates the value of a metric specified by its type,
+        name, and value.
+      parameters:
+        - description: Type of the metric ('gauge' or 'counter')
+          in: path
+          name: metricType
+          required: true
+          type: string
+        - description: Name of the metric
+          in: path
+          name: metricName
+          required: true
+          type: string
+        - description: Value of the metric
+          in: path
+          name: metricValue
+          required: true
+          type: number
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Metric value inserted or updated successfully
+          schema:
+            $ref: '#/definitions/storage.Metric'
+        "400":
+          description: Bad request. Invalid metric parameters or JSON payload
+          schema:
+            type: string
+      summary: Insert or update metric value
+  /updates:
+    post:
+      consumes:
+        - application/json
+      description: Bulk inserts or updates metric values.
+      parameters:
+        - description: Array of metrics to insert or update
+          in: body
+          name: metrics
+          required: true
+          schema:
+            items:
+              $ref: '#/definitions/storage.Metric'
+            type: array
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Metrics inserted or updated successfully
+          schema:
+            type: string
+        "400":
+          description: Bad request. Invalid JSON payload or metric parameters
+          schema:
+            type: string
+      summary: Bulk insert or update metrics
+  /value/{metricType}/{metricName}:
+    get:
+      description: Retrieves the value of a metric specified by its type and name.
+      parameters:
+        - description: Type of the metric ('gauge' or 'counter')
+          in: path
+          name: metricType
+          required: true
+          type: string
+        - description: Name of the metric
+          in: path
+          name: metricName
+          required: true
+          type: string
+      responses:
+        "200":
+          description: Metric value retrieved successfully
+          schema:
+            type: string
+        "400":
+          description: Bad request. Either metric type is unsupported or value is
+            missing
+          schema:
+            type: string
+        "404":
+          description: Metric value not found
+          schema:
+            type: string
+      summary: Retrieve metric value by type and name
+    post:
+      consumes:
+        - application/json
+      description: Retrieves the value of a metric specified by its type and name.
+      parameters:
+        - description: Type of the metric ('gauge' or 'counter')
+          in: path
+          name: metricType
+          required: true
+          type: string
+        - description: Name of the metric
+          in: path
+          name: metricName
+          required: true
+          type: string
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: Metric value retrieved successfully
+          schema:
+            $ref: '#/definitions/storage.Metric'
+        "400":
+          description: Bad request. Invalid JSON payload
+          schema:
+            type: string
+        "404":
+          description: Metric value not found
+          schema:
+            type: string
+      summary: Retrieve metric value by type and name
+swagger: "2.0"
