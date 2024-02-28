@@ -19,8 +19,6 @@ import (
 // @contact.email andreevym@gmail.com
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
-// @host petstore.swagger.io
-// @BasePath /v2
 // main is the entry point of the application.
 // It initializes configurations, logging, and starts the server.
 func main() {

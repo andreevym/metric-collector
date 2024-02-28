@@ -1,4 +1,3 @@
-basePath: /v2
 definitions:
   storage.Metric:
     properties:
@@ -15,7 +14,6 @@ definitions:
         description: Value (applicable for gauge type)
         type: number
     type: object
-host: petstore.swagger.io
 info:
   contact:
     email: andreevym@gmail.com

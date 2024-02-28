@@ -247,8 +247,8 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "18.0",
-	Host:             "petstore.swagger.io",
-	BasePath:         "/v2",
+	Host:             "",
+	BasePath:         "",
 	Schemes:          []string{},
 	Title:            "Metric Collector API",
 	Description:      "Metrics and Alerting Service",
