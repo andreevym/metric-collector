@@ -6,7 +6,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handler) http.Handler {
+func NewRouter(
+	s *ServiceHandlers,
+	middlewares ...func(http.Handler) http.Handler,
+) *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(middlewares...)
 	r.Post("/update/{metricType}/{metricName}/{metricValue}", s.PostUpdateHandler)

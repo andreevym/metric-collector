@@ -137,7 +137,7 @@ func TestUpdateHandler(t *testing.T) {
 }
 
 func signedTestRequest(
-	t *testing.T,
+	t require.TestingT,
 	ts *httptest.Server,
 	method, path string,
 	reqBody []byte,
@@ -170,7 +170,7 @@ func signedTestRequest(
 }
 
 func testRequest(
-	t *testing.T,
+	t require.TestingT,
 	ts *httptest.Server,
 	method string,
 	path string,

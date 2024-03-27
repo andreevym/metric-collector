@@ -11,7 +11,15 @@ import (
 )
 
 // GetValueHandler method return metric value by metric type and metric name
-// example request url: http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
+// @Summary Retrieve metric value by type and name
+// @Description Retrieves the value of a metric specified by its type and name.
+// Supported metric types are 'gauge' and 'counter'.
+// @Param metricType path string true "Type of the metric ('gauge' or 'counter')"
+// @Param metricName path string true "Name of the metric"
+// @Success 200 {string} string "Metric value retrieved successfully"
+// @Failure 400 {string} string "Bad request. Either metric type is unsupported or value is missing"
+// @Failure 404 {string} string "Metric value not found"
+// @Router /value/{metricType}/{metricName} [get]
 func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
 	if metricType != storage.MTypeGauge && metricType != storage.MTypeCounter {

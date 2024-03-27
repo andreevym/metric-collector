@@ -18,8 +18,19 @@ const (
 	ValueMetricContentType  = "application/json"
 )
 
-// PostUpdateHandler method for insert or update metrics
-// example request url: http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
+// PostUpdateHandler method for insert or update metrics.
+// This endpoint is used to insert or update metric values by sending a POST request with the metric ID, type, and value.
+// @Summary Insert or update metric value
+// @Description Inserts or updates the value of a metric specified by its type, name, and value.
+// This endpoint accepts a POST request with the metric ID, type, and value as path parameters.
+// Supported metric types are 'gauge' and 'counter'.
+// @Param metricType path string true "Type of the metric ('gauge' or 'counter')"
+// @Param metricName path string true "Name of the metric"
+// @Param metricValue path number true "Value of the metric"
+// @Produce json
+// @Success 200 {object} storage.Metric "Metric value inserted or updated successfully"
+// @Failure 400 {string} string "Bad request. Invalid metric parameters or JSON payload"
+// @Router /update/{metricType}/{metricName}/{metricValue} [post]
 func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", UpdateMetricContentType)
 
