@@ -16,6 +16,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/postgres"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
 )
@@ -112,7 +113,7 @@ func Start(
 			return nil
 		})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to apply migrations to the database: %w", err)
 		}
 
 		// Set metric storage to PostgreSQL storage
@@ -139,7 +140,7 @@ func Start(
 	router.Get("/swagger/*", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"), //The url pointing to API definition
 	))
-
+	router.Mount("/debug", chimiddleware.Profiler())
 	// Start the HTTP server and listen for incoming requests on the specified address
 	return http.ListenAndServe(address, router)
 }
