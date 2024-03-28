@@ -3,6 +3,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -11,9 +12,31 @@ import (
 	"github.com/andreevym/metric-collector/internal/metricagent"
 )
 
+var buildVersion string
+var buildDate string
+var buildCommit string
+
+func printVersion() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+}
+
 // main is the entry point of the application.
 // It initializes configurations, logging, and starts the agent.
 func main() {
+	printVersion()
+
 	// Initialize agent configurations.
 	cfg := config.NewAgentConfig().Init()
 	if cfg == nil {
