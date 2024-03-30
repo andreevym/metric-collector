@@ -17,3 +17,7 @@ go build -ldflags "-X main.buildVersion=v1.0.1 -X main.buildDate=01-01-2024 -X m
 ```shell
 go build -ldflags "-X main.buildVersion=v1.0.1 -X main.buildDate=01-01-2024 -X main.buildCommit=05cf15b8f01bf4764d657fd09c7954ea0cdda239" -o server cmd/server/main.go
 ```
+
+# Contribution requirements coverage more than 55%
+
+go test -coverprofile=coverage.out ./... && go tool cover -html=coverage.out
