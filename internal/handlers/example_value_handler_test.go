@@ -12,8 +12,8 @@ import (
 	"github.com/golang/mock/gomock"
 )
 
-// ExampleGetValueHandler demonstrates how to use GetPingHandler.
-func ExampleGetValueHandler() {
+// ExampleServiceHandlers_GetValueHandler demonstrates how to use GetPingHandler.
+func ExampleServiceHandlers_GetValueHandler() {
 	mockCtrl := gomock.NewController(nil)
 	defer mockCtrl.Finish()
 	mockStorage := mocks.NewMockStorage(mockCtrl)
