@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"bytes"
+	context2 "context"
 	"encoding/json"
 	"io"
 	"math/rand"
@@ -15,6 +16,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/store"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -230,4 +232,52 @@ func TestUpdates(t *testing.T) {
 	assert.Equal(t, contentType, contentType)
 	res := strconv.FormatFloat(valueGauge2, 'f', -1, 64)
 	assert.Equal(t, res, get)
+}
+
+func BenchmarkBuildMetricByParam(b *testing.B) {
+	request, err := prepareTestData()
+	require.NoError(b, err)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err = handlers.BuildMetricBySplitParam(request)
+		require.NoError(b, err)
+	}
+}
+
+func BenchmarkBuildMetricByChiParam(b *testing.B) {
+	request, err := prepareTestData()
+	require.NoError(b, err)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err = handlers.BuildMetricByChiParam(request)
+		require.NoError(b, err)
+	}
+}
+
+func prepareTestData() (*http.Request, error) {
+	router := chi.NewRouter()
+	router.Post(handlers.PathPostUpdate+"/{metricType}/{metricName}/{metricValue}", nil)
+
+	// Simulate URL params
+	params := chi.RouteParams{
+		Keys:   []string{"metricType", "metricName", "metricValue"},
+		Values: []string{"counter", "test", "1"},
+	}
+
+	context := chi.NewRouteContext()
+	context.Routes = router
+	context.URLParams = params
+	context.RouteMethod = "POST"
+	context.RoutePath = "/update/{metricType}/{metricName}/{metricValue}"
+
+	request, err := http.NewRequest("POST", "http://localhost:8080/update/counter/test/1", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add context to request
+	r := request.WithContext(context2.WithValue(context2.Background(), chi.RouteCtxKey, context))
+	return r, nil
 }

@@ -3,9 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage/store"
@@ -90,7 +92,7 @@ func buildMetricByRequest(r *http.Request) (*store.Metric, error) {
 		return metric, nil
 	}
 
-	return buildMetricByParam(r)
+	return BuildMetricByChiParam(r)
 }
 
 func buildMetricByBody(body io.ReadCloser) (*store.Metric, error) {
@@ -108,7 +110,7 @@ func buildMetricByBody(body io.ReadCloser) (*store.Metric, error) {
 	return metric, err
 }
 
-func buildMetricByParam(r *http.Request) (*store.Metric, error) {
+func BuildMetricByChiParam(r *http.Request) (*store.Metric, error) {
 	metric := &store.Metric{}
 	metric.MType = chi.URLParam(r, "metricType")
 	metric.ID = chi.URLParam(r, "metricName")
@@ -130,4 +132,46 @@ func buildMetricByParam(r *http.Request) (*store.Metric, error) {
 	}
 
 	return metric, nil
+}
+
+const (
+	countRequestURIParam    = 5
+	indexMetricName         = 3
+	indexMetricType         = 2
+	indexMetricValueOrDelta = 4
+)
+
+func BuildMetricBySplitParam(r *http.Request) (*store.Metric, error) {
+	split := make([]string, countRequestURIParam)
+	copy(split, strings.Split(r.URL.Path, "/"))
+
+	if len(split) < countRequestURIParam {
+		return nil, errors.New("unknown size param")
+	}
+
+	m := &store.Metric{
+		MType: split[indexMetricType],
+		ID:    split[indexMetricName],
+	}
+
+	valueOrDelta := split[indexMetricValueOrDelta]
+
+	switch m.MType {
+	case store.MTypeCounter:
+		delta, err := strconv.ParseInt(valueOrDelta, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse delta for metric: %w", err)
+		}
+		m.Delta = &delta
+	case store.MTypeGauge:
+		value, err := strconv.ParseFloat(valueOrDelta, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse value for metric: %w", err)
+		}
+		m.Value = &value
+	default:
+		return nil, errors.New("unknown type")
+	}
+
+	return m, nil
 }
