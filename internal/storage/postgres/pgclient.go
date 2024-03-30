@@ -6,29 +6,29 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jmoiron/sqlx"
 )
 
-type Client struct {
+type PgClient struct {
 	db *sqlx.DB
 }
 
-func NewClient(databaseDsn string) (*Client, error) {
+func NewPgClient(databaseDsn string) (*PgClient, error) {
 	db, err := sqlx.Open("pgx", databaseDsn)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Client{db: db}, nil
+	return &PgClient{db: db}, nil
 }
 
-func (c *Client) Close() error {
+func (c *PgClient) Close() error {
 	return c.db.Close()
 }
 
-func (c *Client) Ping() error {
+func (c *PgClient) Ping() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 
@@ -40,11 +40,11 @@ func (c *Client) Ping() error {
 	return nil
 }
 
-func (c *Client) SelectByIDAndType(ctx context.Context, id string, mType string) (*storage.Metric, error) {
+func (c *PgClient) SelectByIDAndType(ctx context.Context, id string, mType string) (*store.Metric, error) {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	metrics := []storage.Metric{}
+	var metrics []store.Metric
 	err := c.db.SelectContext(
 		rCtx,
 		&metrics,
@@ -57,7 +57,7 @@ func (c *Client) SelectByIDAndType(ctx context.Context, id string, mType string)
 		return nil, fmt.Errorf("failed execute select: %w", err)
 	}
 	if len(metrics) == 0 {
-		return nil, storage.ErrValueNotFound
+		return nil, store.ErrValueNotFound
 	}
 	if len(metrics) > 1 {
 		return nil, fmt.Errorf("something goung wrong, expect single value, but found %d", len(metrics))
@@ -66,11 +66,11 @@ func (c *Client) SelectByIDAndType(ctx context.Context, id string, mType string)
 	return &metrics[0], nil
 }
 
-func (c *Client) Insert(ctx context.Context, m *storage.Metric) error {
+func (c *PgClient) Insert(ctx context.Context, m *store.Metric) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+	if m.MType != store.MTypeGauge && m.MType != store.MTypeCounter {
 		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
 	}
 
@@ -96,7 +96,7 @@ func (c *Client) Insert(ctx context.Context, m *storage.Metric) error {
 	return nil
 }
 
-func (c *Client) SaveAll(ctx context.Context, metrics map[string]storage.MetricR) error {
+func (c *PgClient) SaveAll(ctx context.Context, metrics map[string]store.MetricR) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -124,7 +124,7 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]storage.MetricR
 	defer updStmt.Close()
 
 	for _, m := range metrics {
-		if m.Metric.MType != storage.MTypeGauge && m.Metric.MType != storage.MTypeCounter {
+		if m.Metric.MType != store.MTypeGauge && m.Metric.MType != store.MTypeCounter {
 			return fmt.Errorf("metric type %s is not valid for ID %s", m.Metric.MType, m.Metric.ID)
 		}
 
@@ -165,14 +165,14 @@ func (c *Client) SaveAll(ctx context.Context, metrics map[string]storage.MetricR
 	return nil
 }
 
-func (c *Client) Update(
+func (c *PgClient) Update(
 	ctx context.Context,
-	m *storage.Metric,
+	m *store.Metric,
 ) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
-	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+	if m.MType != store.MTypeGauge && m.MType != store.MTypeCounter {
 		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
 	}
 
@@ -194,7 +194,7 @@ func (c *Client) Update(
 	return nil
 }
 
-func (c *Client) Delete(ctx context.Context, id string, mType string) error {
+func (c *PgClient) Delete(ctx context.Context, id string, mType string) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 
@@ -206,7 +206,7 @@ func (c *Client) Delete(ctx context.Context, id string, mType string) error {
 	return nil
 }
 
-func (c *Client) ApplyMigration(ctx context.Context, sql string) error {
+func (c *PgClient) ApplyMigration(ctx context.Context, sql string) error {
 	rCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
 

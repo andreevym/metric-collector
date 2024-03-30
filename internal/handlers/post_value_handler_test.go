@@ -10,8 +10,8 @@ import (
 
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/middleware"
-	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +33,7 @@ func TestPostHandler(t *testing.T) {
 		createGauge   map[string]string
 		updateCounter map[string]string
 		updateGauge   map[string]string
-		metrics       *storage.Metric
+		metrics       *store.Metric
 	}{
 		{
 			name: "success get counter",
@@ -51,9 +51,9 @@ func TestPostHandler(t *testing.T) {
 				"test2": "4",
 			},
 			request: "/value/",
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 			},
 			httpMethod: http.MethodPost,
 		},
@@ -73,9 +73,9 @@ func TestPostHandler(t *testing.T) {
 				"test2": "4",
 			},
 			request: "/value/",
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 			},
 			httpMethod: http.MethodPost,
 		},
@@ -96,9 +96,9 @@ func TestPostHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 			},
 		},
 		{
@@ -118,9 +118,9 @@ func TestPostHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 			},
 		},
 		{
@@ -132,9 +132,9 @@ func TestPostHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 			},
 		},
 		{
@@ -146,9 +146,9 @@ func TestPostHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 			},
 		},
 		{
@@ -160,7 +160,7 @@ func TestPostHandler(t *testing.T) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
 				MType: "TestGauge",
 			},
@@ -171,9 +171,9 @@ func TestPostHandler(t *testing.T) {
 			memStorage := mem.NewStorage(nil)
 			for k, v := range test.createCounter {
 				i, _ := strconv.ParseInt(v, 10, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeCounter,
+					MType: store.MTypeCounter,
 					Delta: &i,
 					Value: nil,
 				}
@@ -182,9 +182,9 @@ func TestPostHandler(t *testing.T) {
 			}
 			for k, v := range test.createGauge {
 				i, _ := strconv.ParseFloat(v, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeGauge,
+					MType: store.MTypeGauge,
 					Delta: nil,
 					Value: &i,
 				}
@@ -193,9 +193,9 @@ func TestPostHandler(t *testing.T) {
 			}
 			for k, v := range test.updateCounter {
 				i, _ := strconv.ParseInt(v, 10, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeCounter,
+					MType: store.MTypeCounter,
 					Delta: &i,
 					Value: nil,
 				}
@@ -204,9 +204,9 @@ func TestPostHandler(t *testing.T) {
 			}
 			for k, v := range test.updateGauge {
 				i, _ := strconv.ParseFloat(v, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeGauge,
+					MType: store.MTypeGauge,
 					Delta: nil,
 					Value: &i,
 				}
@@ -232,16 +232,16 @@ func TestPostHandler(t *testing.T) {
 			if test.want.resp != "" {
 				assert.Equal(t, test.want.contentType, contentType)
 
-				respMetrics := storage.Metric{}
+				respMetrics := store.Metric{}
 				err = json.Unmarshal([]byte(got), &respMetrics)
 				require.NoError(t, err)
 
 				if test.metrics != nil {
-					if test.metrics.MType == storage.MTypeGauge {
+					if test.metrics.MType == store.MTypeGauge {
 						v, err := strconv.ParseFloat(test.want.resp, 64)
 						require.NoError(t, err)
 						test.metrics.Value = &v
-					} else if test.metrics.MType == storage.MTypeCounter {
+					} else if test.metrics.MType == store.MTypeCounter {
 						v, err := strconv.ParseInt(test.want.resp, 10, 64)
 						require.NoError(t, err)
 						test.metrics.Delta = &v
@@ -271,7 +271,7 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 		createGauge   map[string]string
 		updateCounter map[string]string
 		updateGauge   map[string]string
-		metrics       *storage.Metric
+		metrics       *store.Metric
 	}{
 		{
 			name: "success get counter",
@@ -289,9 +289,9 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 				"test2": "4",
 			},
 			request: "/value/",
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 			},
 			httpMethod: http.MethodPost,
 		},
@@ -311,9 +311,9 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 				"test2": "4",
 			},
 			request: "/value/",
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 			},
 			httpMethod: http.MethodPost,
 		},
@@ -334,9 +334,9 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 			},
 			request:    "/value/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 			},
 		},
 	}
@@ -345,9 +345,9 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 			memStorage := mem.NewStorage(nil)
 			for k, v := range test.createCounter {
 				i, _ := strconv.ParseInt(v, 10, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeCounter,
+					MType: store.MTypeCounter,
 					Delta: &i,
 					Value: nil,
 				}
@@ -356,9 +356,9 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 			}
 			for k, v := range test.createGauge {
 				i, _ := strconv.ParseFloat(v, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeGauge,
+					MType: store.MTypeGauge,
 					Delta: nil,
 					Value: &i,
 				}
@@ -367,9 +367,9 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 			}
 			for k, v := range test.updateCounter {
 				i, _ := strconv.ParseInt(v, 10, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeCounter,
+					MType: store.MTypeCounter,
 					Delta: &i,
 					Value: nil,
 				}
@@ -378,9 +378,9 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 			}
 			for k, v := range test.updateGauge {
 				i, _ := strconv.ParseFloat(v, 64)
-				metric := &storage.Metric{
+				metric := &store.Metric{
 					ID:    k,
-					MType: storage.MTypeGauge,
+					MType: store.MTypeGauge,
 					Delta: nil,
 					Value: &i,
 				}
@@ -406,16 +406,16 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 			if test.want.resp != "" {
 				assert.Equal(t, test.want.contentType, contentType)
 
-				respMetrics := storage.Metric{}
+				respMetrics := store.Metric{}
 				err = json.Unmarshal([]byte(got), &respMetrics)
 				require.NoError(t, err)
 
 				if test.metrics != nil {
-					if test.metrics.MType == storage.MTypeGauge {
+					if test.metrics.MType == store.MTypeGauge {
 						v, err := strconv.ParseFloat(test.want.resp, 64)
 						require.NoError(t, err)
 						test.metrics.Value = &v
-					} else if test.metrics.MType == storage.MTypeCounter {
+					} else if test.metrics.MType == store.MTypeCounter {
 						v, err := strconv.ParseInt(test.want.resp, 10, 64)
 						require.NoError(t, err)
 						test.metrics.Delta = &v

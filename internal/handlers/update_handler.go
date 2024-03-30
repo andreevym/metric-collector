@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
@@ -28,7 +28,7 @@ const (
 // @Param metricName path string true "Name of the metric"
 // @Param metricValue path number true "Value of the metric"
 // @Produce json
-// @Success 200 {object} storage.Metric "Metric value inserted or updated successfully"
+// @Success 200 {object} store.Metric "Metric value inserted or updated successfully"
 // @Failure 400 {string} string "Bad request. Invalid metric parameters or JSON payload"
 // @Router /update/{metricType}/{metricName}/{metricValue} [post]
 func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -40,13 +40,13 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if metric.MType != storage.MTypeGauge && metric.MType != storage.MTypeCounter {
+	if metric.MType != store.MTypeGauge && metric.MType != store.MTypeCounter {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	foundValue, err := s.storage.Read(r.Context(), metric.ID, metric.MType)
-	if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
+	if err != nil && !errors.Is(err, store.ErrValueNotFound) {
 		logger.Logger().Error("failed update metric",
 			zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
@@ -60,7 +60,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	} else {
-		if metric.MType == storage.MTypeCounter {
+		if metric.MType == store.MTypeCounter {
 			newDelta := *metric.Delta + *foundValue.Delta
 			metric.Delta = &newDelta
 		}
@@ -84,7 +84,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func buildMetricByRequest(r *http.Request) (*storage.Metric, error) {
+func buildMetricByRequest(r *http.Request) (*store.Metric, error) {
 	metric, err := buildMetricByBody(r.Body)
 	if err == nil && metric != nil {
 		return metric, nil
@@ -93,7 +93,7 @@ func buildMetricByRequest(r *http.Request) (*storage.Metric, error) {
 	return buildMetricByParam(r)
 }
 
-func buildMetricByBody(body io.ReadCloser) (*storage.Metric, error) {
+func buildMetricByBody(body io.ReadCloser) (*store.Metric, error) {
 	bytes, err := io.ReadAll(body)
 	if err != nil {
 		logger.Logger().Error("error", zap.Error(err))
@@ -103,23 +103,23 @@ func buildMetricByBody(body io.ReadCloser) (*storage.Metric, error) {
 		return nil, errors.New("body len is empty")
 	}
 
-	metric := &storage.Metric{}
+	metric := &store.Metric{}
 	err = json.Unmarshal(bytes, &metric)
 	return metric, err
 }
 
-func buildMetricByParam(r *http.Request) (*storage.Metric, error) {
-	metric := &storage.Metric{}
+func buildMetricByParam(r *http.Request) (*store.Metric, error) {
+	metric := &store.Metric{}
 	metric.MType = chi.URLParam(r, "metricType")
 	metric.ID = chi.URLParam(r, "metricName")
 	v := chi.URLParam(r, "metricValue")
-	if metric.MType == storage.MTypeCounter {
+	if metric.MType == store.MTypeCounter {
 		delta, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return nil, err
 		}
 		metric.Delta = &delta
-	} else if metric.MType == storage.MTypeGauge {
+	} else if metric.MType == store.MTypeGauge {
 		value, err := strconv.ParseFloat(v, 64)
 		if err != nil {
 			return nil, err

@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -22,7 +22,7 @@ import (
 // @Router /value/{metricType}/{metricName} [get]
 func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request) {
 	metricType := chi.URLParam(r, "metricType")
-	if metricType != storage.MTypeGauge && metricType != storage.MTypeCounter {
+	if metricType != store.MTypeGauge && metricType != store.MTypeCounter {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -35,7 +35,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	switch v.MType {
-	case storage.MTypeCounter:
+	case store.MTypeCounter:
 		if v.Delta == nil {
 			logger.Logger().Error("delta can't be nil")
 			w.WriteHeader(http.StatusBadRequest)
@@ -47,7 +47,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
-	case storage.MTypeGauge:
+	case store.MTypeGauge:
 		if v.Value == nil {
 			logger.Logger().Error("value can't be nil")
 			w.WriteHeader(http.StatusBadRequest)

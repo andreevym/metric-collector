@@ -78,7 +78,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Metric value inserted or updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/storage.Metric"
+                            "$ref": "#/definitions/store.Metric"
                         }
                     },
                     "400": {
@@ -109,7 +109,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/storage.Metric"
+                                "$ref": "#/definitions/store.Metric"
                             }
                         }
                     }
@@ -200,7 +200,7 @@ const docTemplate = `{
                     "200": {
                         "description": "Metric value retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/storage.Metric"
+                            "$ref": "#/definitions/store.Metric"
                         }
                     },
                     "400": {
@@ -220,7 +220,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "storage.Metric": {
+        "store.Metric": {
             "type": "object",
             "properties": {
                 "delta": {

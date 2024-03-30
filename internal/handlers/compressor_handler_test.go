@@ -11,8 +11,8 @@ import (
 
 	"github.com/andreevym/metric-collector/internal/compressor"
 	"github.com/andreevym/metric-collector/internal/middleware"
-	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,22 +20,22 @@ import (
 func TestGzipCompressionUpdate(t *testing.T) {
 	memStorage := mem.NewStorage(nil)
 	i := int64(1)
-	err := memStorage.Create(context.TODO(), &storage.Metric{
+	err := memStorage.Create(context.TODO(), &store.Metric{
 		ID:    "B",
-		MType: storage.MTypeCounter,
+		MType: store.MTypeCounter,
 		Delta: &i,
 	})
 	assert.NoError(t, err)
-	err = memStorage.Create(context.TODO(), &storage.Metric{
+	err = memStorage.Create(context.TODO(), &store.Metric{
 		ID:    "A",
-		MType: storage.MTypeCounter,
+		MType: store.MTypeCounter,
 		Delta: &i,
 	})
 	assert.NoError(t, err)
 	f := 0.2
-	err = memStorage.Create(context.TODO(), &storage.Metric{
+	err = memStorage.Create(context.TODO(), &store.Metric{
 		ID:    "B",
-		MType: storage.MTypeGauge,
+		MType: store.MTypeGauge,
 		Value: &f,
 	})
 	assert.NoError(t, err)
@@ -52,17 +52,17 @@ func TestGzipCompressionUpdate(t *testing.T) {
 
 	t.Run("without_gzip", func(t *testing.T) {
 		valueA := int64(2)
-		requestBody, err := json.Marshal(&storage.Metric{
+		requestBody, err := json.Marshal(&store.Metric{
 			ID:    "N",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&storage.Metric{
+		successBody, err := json.Marshal(&store.Metric{
 			ID:    "N",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
@@ -76,18 +76,18 @@ func TestGzipCompressionUpdate(t *testing.T) {
 
 	t.Run("sends_gzip", func(t *testing.T) {
 		valueA := int64(2)
-		requestBody, err := json.Marshal(&storage.Metric{
+		requestBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
 
 		newValueA := int64(3)
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&storage.Metric{
+		successBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &newValueA,
 		})
 		require.NoError(t, err)
@@ -105,18 +105,18 @@ func TestGzipCompressionUpdate(t *testing.T) {
 
 	t.Run("accepts_gzip", func(t *testing.T) {
 		valueRequest := int64(2)
-		requestBody, err := json.Marshal(&storage.Metric{
+		requestBody, err := json.Marshal(&store.Metric{
 			ID:    "B",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueRequest,
 		})
 		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
 		valueAfterUpdate := int64(3)
-		successBody, err := json.Marshal(&storage.Metric{
+		successBody, err := json.Marshal(&store.Metric{
 			ID:    "B",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueAfterUpdate,
 		})
 		require.NoError(t, err)
@@ -140,9 +140,9 @@ func TestGzipCompressionUpdate(t *testing.T) {
 func TestGzipCompressionValue(t *testing.T) {
 	memStorage := mem.NewStorage(nil)
 	valueA := int64(1)
-	err := memStorage.Create(context.TODO(), &storage.Metric{
+	err := memStorage.Create(context.TODO(), &store.Metric{
 		ID:    "A",
-		MType: storage.MTypeCounter,
+		MType: store.MTypeCounter,
 		Delta: &valueA,
 	})
 	assert.NoError(t, err)
@@ -158,16 +158,16 @@ func TestGzipCompressionValue(t *testing.T) {
 	defer srv.Close()
 
 	t.Run("without_gzip", func(t *testing.T) {
-		requestBody, err := json.Marshal(&storage.Metric{
+		requestBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 		})
 		require.NoError(t, err)
 
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&storage.Metric{
+		successBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
@@ -182,17 +182,17 @@ func TestGzipCompressionValue(t *testing.T) {
 	})
 
 	t.Run("sends_gzip", func(t *testing.T) {
-		requestBody, err := json.Marshal(&storage.Metric{
+		requestBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 		})
 		require.NoError(t, err)
 
 		valueA := int64(1)
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&storage.Metric{
+		successBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)
@@ -209,17 +209,17 @@ func TestGzipCompressionValue(t *testing.T) {
 	})
 
 	t.Run("accepts_gzip", func(t *testing.T) {
-		requestBody, err := json.Marshal(&storage.Metric{
+		requestBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 		})
 		require.NoError(t, err)
 
 		valueA := int64(1)
 		// ожидаемое содержимое тела ответа при успешном запросе
-		successBody, err := json.Marshal(&storage.Metric{
+		successBody, err := json.Marshal(&store.Metric{
 			ID:    "A",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &valueA,
 		})
 		require.NoError(t, err)

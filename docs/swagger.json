@@ -70,7 +70,7 @@
                     "200": {
                         "description": "Metric value inserted or updated successfully",
                         "schema": {
-                            "$ref": "#/definitions/storage.Metric"
+                            "$ref": "#/definitions/store.Metric"
                         }
                     },
                     "400": {
@@ -101,7 +101,7 @@
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/storage.Metric"
+                                "$ref": "#/definitions/store.Metric"
                             }
                         }
                     }
@@ -192,7 +192,7 @@
                     "200": {
                         "description": "Metric value retrieved successfully",
                         "schema": {
-                            "$ref": "#/definitions/storage.Metric"
+                            "$ref": "#/definitions/store.Metric"
                         }
                     },
                     "400": {
@@ -212,7 +212,7 @@
         }
     },
     "definitions": {
-        "storage.Metric": {
+        "store.Metric": {
             "type": "object",
             "properties": {
                 "delta": {

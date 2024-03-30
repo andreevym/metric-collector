@@ -4,23 +4,23 @@ import (
 	"context"
 	"testing"
 
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 )
 
 func TestStorage_Create(t *testing.T) {
 	i := int64(1)
 	tests := []struct {
 		name    string
-		storage map[string]*storage.Metric
-		m       *storage.Metric
+		storage map[string]*store.Metric
+		m       *store.Metric
 		wantErr bool
 	}{
 		{
 			name:    "create",
-			storage: map[string]*storage.Metric{},
-			m: &storage.Metric{
+			storage: map[string]*store.Metric{},
+			m: &store.Metric{
 				ID:    "k",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &i,
 				Value: nil,
 			},
@@ -43,32 +43,32 @@ func TestStorage_Update(t *testing.T) {
 	i := int64(1)
 	tests := []struct {
 		name    string
-		storage map[string]*storage.Metric
-		m       *storage.Metric
+		storage map[string]*store.Metric
+		m       *store.Metric
 		wantErr bool
 	}{
 		{
 			name: "update exists",
-			storage: map[string]*storage.Metric{
-				"k" + storage.MTypeCounter: {
+			storage: map[string]*store.Metric{
+				"k" + store.MTypeCounter: {
 					ID:    "k",
-					MType: storage.MTypeCounter,
+					MType: store.MTypeCounter,
 					Delta: &i,
 				},
 			},
-			m: &storage.Metric{
+			m: &store.Metric{
 				ID:    "k",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &i,
 			},
 			wantErr: false,
 		},
 		{
 			name:    "update not exists",
-			storage: map[string]*storage.Metric{},
-			m: &storage.Metric{
+			storage: map[string]*store.Metric{},
+			m: &store.Metric{
 				ID:    "k",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &i,
 			},
 			wantErr: true,

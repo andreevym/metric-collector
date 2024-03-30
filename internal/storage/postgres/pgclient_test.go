@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/postgres"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,26 +21,26 @@ var (
 	id1             = "1"
 	delta1          = int64(1)
 	delta2          = int64(2)
-	mType           = storage.MTypeCounter
-	insertedMetric1 = &storage.Metric{
+	mType           = store.MTypeCounter
+	insertedMetric1 = &store.Metric{
 		ID:    id1,
 		MType: mType,
 		Delta: &delta1,
 	}
-	updatedMetric1 = &storage.Metric{
+	updatedMetric1 = &store.Metric{
 		ID:    id1,
 		MType: mType,
 		Delta: &delta2,
 	}
 	id2             = "2"
-	insertedMetric2 = &storage.Metric{
+	insertedMetric2 = &store.Metric{
 		ID:    id2,
-		MType: storage.MTypeCounter,
+		MType: store.MTypeCounter,
 		Delta: &delta1,
 	}
-	updatedMetric2 = &storage.Metric{
+	updatedMetric2 = &store.Metric{
 		ID:    id2,
-		MType: storage.MTypeCounter,
+		MType: store.MTypeCounter,
 		Delta: &delta2,
 	}
 )
@@ -59,7 +59,7 @@ func TestPgStorageEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 
 	dsn := getDSN(hostPort, dbName, testDBUserName, testDBUserPassword)
-	pgClient, err := postgres.NewClient(dsn)
+	pgClient, err := postgres.NewPgClient(dsn)
 	require.NoError(t, err)
 
 	err = pgClient.Ping()
@@ -92,12 +92,12 @@ func TestPgStorageEndToEnd(t *testing.T) {
 	require.EqualError(t, err, "not found value")
 	require.Nil(t, foundMetric)
 
-	createdMetrics := map[string]storage.MetricR{}
-	createdMetrics[id1] = storage.MetricR{
+	createdMetrics := map[string]store.MetricR{}
+	createdMetrics[id1] = store.MetricR{
 		Metric:   insertedMetric1,
 		IsExists: false,
 	}
-	createdMetrics[id2] = storage.MetricR{
+	createdMetrics[id2] = store.MetricR{
 		Metric:   insertedMetric2,
 		IsExists: false,
 	}
@@ -114,12 +114,12 @@ func TestPgStorageEndToEnd(t *testing.T) {
 	require.NotNil(t, foundMetric)
 	require.Equal(t, foundMetric.Delta, insertedMetric2.Delta)
 
-	updatedMetrics := map[string]storage.MetricR{}
-	updatedMetrics[id1] = storage.MetricR{
+	updatedMetrics := map[string]store.MetricR{}
+	updatedMetrics[id1] = store.MetricR{
 		Metric:   updatedMetric1,
 		IsExists: true,
 	}
-	updatedMetrics[id2] = storage.MetricR{
+	updatedMetrics[id2] = store.MetricR{
 		Metric:   updatedMetric2,
 		IsExists: true,
 	}
@@ -156,7 +156,7 @@ func TestPgClientEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 
 	dsn := getDSN(hostPort, dbName, testDBUserName, testDBUserPassword)
-	pgClient, err := postgres.NewClient(dsn)
+	pgClient, err := postgres.NewPgClient(dsn)
 	require.NoError(t, err)
 
 	err = pgClient.Ping()
@@ -193,7 +193,7 @@ func TestPgClientEndToEnd(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func migrate(t *testing.T, pgClient *postgres.Client) {
+func migrate(t *testing.T, pgClient *postgres.PgClient) {
 	err := filepath.Walk("../../../migrations", func(path string, info fs.FileInfo, err error) error {
 		if !info.IsDir() {
 			bytes, err := os.ReadFile(path)
