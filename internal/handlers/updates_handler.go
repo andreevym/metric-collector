@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"go.uber.org/zap"
 )
 
@@ -23,7 +23,7 @@ const (
 // Supported metric types are 'gauge' and 'counter'.
 // @Accept json
 // @Produce json
-// @Param metrics body []storage.Metric true "Array of metrics to insert or update"
+// @Param metrics body []store.Metric true "Array of metrics to insert or update"
 // @Success 200 {string} string "Metrics inserted or updated successfully"
 // @Failure 400 {string} string "Bad request. Invalid JSON payload or metric parameters"
 // @Router /updates [post]
@@ -37,7 +37,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var metrics []*storage.Metric
+	var metrics []*store.Metric
 	err = json.Unmarshal(bytes, &metrics)
 	if err != nil {
 		logger.Logger().Error("err", zap.Error(err))
@@ -45,5 +45,5 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	storage.SaveAllMetric(r.Context(), s.storage, metrics)
+	store.SaveAllMetric(r.Context(), s.storage, metrics)
 }

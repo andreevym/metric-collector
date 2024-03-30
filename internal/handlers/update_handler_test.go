@@ -13,8 +13,8 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/hash"
 	"github.com/andreevym/metric-collector/internal/middleware"
-	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +31,7 @@ func TestUpdateHandler(t *testing.T) {
 		name       string
 		want       want
 		request    string
-		metrics    *storage.Metric
+		metrics    *store.Metric
 		httpMethod string
 	}{
 		{
@@ -43,9 +43,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &d,
 			},
 		},
@@ -58,9 +58,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &d,
 			},
 		},
@@ -73,9 +73,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 				Value: &f,
 			},
 		},
@@ -88,9 +88,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 				Value: &f,
 			},
 		},
@@ -185,7 +185,7 @@ func TestUpdates(t *testing.T) {
 	valueCounter1, valueCounter2 := int64(rand.Int()), int64(rand.Int())
 	valueGauge1, valueGauge2 := float64(rand.Float32()), float64(rand.Float32())
 
-	metrics := []storage.Metric{
+	metrics := []store.Metric{
 		{
 			ID:    idCounter,
 			MType: "counter",

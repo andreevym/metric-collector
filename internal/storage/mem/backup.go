@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
@@ -16,10 +16,10 @@ const (
 	retryAttempts = 3
 )
 
-func Load(filename string) (map[string]*storage.Metric, error) {
+func Load(filename string) (map[string]*store.Metric, error) {
 	_, err := os.Stat(filename)
 	if err != nil {
-		return map[string]*storage.Metric{}, nil
+		return map[string]*store.Metric{}, nil
 	}
 	bytes, err := os.ReadFile(filename)
 	if err != nil {
@@ -27,7 +27,7 @@ func Load(filename string) (map[string]*storage.Metric, error) {
 		return nil, fmt.Errorf("can't read backup file %s: %w", filename, err)
 	}
 	if len(bytes) == 0 {
-		return map[string]*storage.Metric{}, nil
+		return map[string]*store.Metric{}, nil
 	}
 
 	m, err := marshal(bytes)
@@ -38,7 +38,7 @@ func Load(filename string) (map[string]*storage.Metric, error) {
 	return m, nil
 }
 
-func Save(filename string, data map[string]*storage.Metric) error {
+func Save(filename string, data map[string]*store.Metric) error {
 	var file *os.File
 	var err error
 	_ = retry.Do(
@@ -82,10 +82,10 @@ func Save(filename string, data map[string]*storage.Metric) error {
 }
 
 type metricStore struct {
-	Metrics map[string]*storage.Metric `json:"storage"`
+	Metrics map[string]*store.Metric `json:"storage"`
 }
 
-func marshal(data []byte) (map[string]*storage.Metric, error) {
+func marshal(data []byte) (map[string]*store.Metric, error) {
 	v := metricStore{}
 	err := json.Unmarshal(data, &v)
 	if err != nil {
@@ -95,6 +95,6 @@ func marshal(data []byte) (map[string]*storage.Metric, error) {
 	return v.Metrics, nil
 }
 
-func unmarshal(m map[string]*storage.Metric) ([]byte, error) {
+func unmarshal(m map[string]*store.Metric) ([]byte, error) {
 	return json.Marshal(metricStore{m})
 }

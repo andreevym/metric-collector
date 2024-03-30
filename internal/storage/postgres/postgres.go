@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"github.com/jackc/pgerrcode"
@@ -18,16 +18,16 @@ const (
 )
 
 type PgStorage struct {
-	client *Client
+	client store.Client
 }
 
-func NewPgStorage(dbClient *Client) *PgStorage {
+func NewPgStorage(dbClient store.Client) *PgStorage {
 	return &PgStorage{
 		dbClient,
 	}
 }
 
-func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
+func (s *PgStorage) Create(ctx context.Context, m *store.Metric) error {
 	var err error
 	_ = retry.Do(
 		func() error {
@@ -51,7 +51,7 @@ func (s *PgStorage) Create(ctx context.Context, m *storage.Metric) error {
 	return err
 }
 
-func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]storage.MetricR) error {
+func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]store.MetricR) error {
 	var err error
 	_ = retry.Do(
 		func() error {
@@ -75,8 +75,8 @@ func (s *PgStorage) CreateAll(ctx context.Context, metrics map[string]storage.Me
 	return err
 }
 
-func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage.Metric, error) {
-	var m *storage.Metric
+func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*store.Metric, error) {
+	var m *store.Metric
 	var err error
 	_ = retry.Do(
 		func() error {
@@ -100,7 +100,7 @@ func (s *PgStorage) Read(ctx context.Context, id string, mType string) (*storage
 	return m, err
 }
 
-func (s *PgStorage) Update(ctx context.Context, m *storage.Metric) error {
+func (s *PgStorage) Update(ctx context.Context, m *store.Metric) error {
 	var err error
 	_ = retry.Do(
 		func() error {

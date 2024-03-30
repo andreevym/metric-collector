@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"go.uber.org/zap"
 )
 
 type Storage struct {
-	data map[string]*storage.Metric
+	data map[string]*store.Metric
 	sync.RWMutex
 	opt *BackupOptional
 }
@@ -24,15 +24,15 @@ type BackupOptional struct {
 
 func NewStorage(opt *BackupOptional) *Storage {
 	return &Storage{
-		map[string]*storage.Metric{},
+		map[string]*store.Metric{},
 		sync.RWMutex{},
 		opt,
 	}
 }
 
-func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
+func (s *Storage) Create(_ context.Context, m *store.Metric) error {
 	s.Lock()
-	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+	if m.MType != store.MTypeGauge && m.MType != store.MTypeCounter {
 		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
 	}
 	s.data[m.ID+m.MType] = m
@@ -44,10 +44,10 @@ func (s *Storage) Create(_ context.Context, m *storage.Metric) error {
 	return nil
 }
 
-func (s *Storage) CreateAll(_ context.Context, metrics map[string]storage.MetricR) error {
+func (s *Storage) CreateAll(_ context.Context, metrics map[string]store.MetricR) error {
 	s.Lock()
 	for _, m := range metrics {
-		if m.Metric.MType != storage.MTypeGauge && m.Metric.MType != storage.MTypeCounter {
+		if m.Metric.MType != store.MTypeGauge && m.Metric.MType != store.MTypeCounter {
 			return fmt.Errorf("metric type %s is not valid for ID %s", m.Metric.MType, m.Metric.ID)
 		}
 		s.data[m.Metric.ID+m.Metric.MType] = m.Metric
@@ -60,17 +60,17 @@ func (s *Storage) CreateAll(_ context.Context, metrics map[string]storage.Metric
 	return nil
 }
 
-func (s *Storage) Read(_ context.Context, id string, mType string) (*storage.Metric, error) {
+func (s *Storage) Read(_ context.Context, id string, mType string) (*store.Metric, error) {
 	v, ok := s.data[id+mType]
 	if !ok {
-		return nil, fmt.Errorf("%w: not found value by id %s", storage.ErrValueNotFound, id)
+		return nil, fmt.Errorf("%w: not found value by id %s", store.ErrValueNotFound, id)
 	}
 	return v, nil
 }
 
-func (s *Storage) Update(_ context.Context, m *storage.Metric) error {
+func (s *Storage) Update(_ context.Context, m *store.Metric) error {
 	s.Lock()
-	if m.MType != storage.MTypeGauge && m.MType != storage.MTypeCounter {
+	if m.MType != store.MTypeGauge && m.MType != store.MTypeCounter {
 		return fmt.Errorf("metric type %s is not valid for ID %s", m.MType, m.ID)
 	}
 	_, ok := s.data[m.ID+m.MType]

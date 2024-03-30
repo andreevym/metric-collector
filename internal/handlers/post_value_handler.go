@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 )
 
 // PostValueHandler method returns metric value by metric type and metric name.
@@ -18,7 +18,7 @@ import (
 // @Param metricName path string true "Name of the metric"
 // @Accept json
 // @Produce json
-// @Success 200 {object} storage.Metric "Metric value retrieved successfully"
+// @Success 200 {object} store.Metric "Metric value retrieved successfully"
 // @Failure 400 {string} string "Bad request. Invalid JSON payload"
 // @Failure 404 {string} string "Metric value not found"
 // @Router /value/{metricType}/{metricName} [post]
@@ -31,7 +31,7 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	m := storage.Metric{}
+	m := store.Metric{}
 	err = json.Unmarshal(bytes, &m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

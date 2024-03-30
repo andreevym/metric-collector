@@ -1,5 +1,5 @@
-// Package storage provides interfaces and implementations for metric storage.
-package storage
+// Package storage provides interfaces and implementations for metric store.
+package store
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 var ErrValueNotFound = errors.New("not found value")
 
 // Storage defines the interface for metric storage operations.
+//
+//go:generate mockgen -destination=../mocks/mock_store.go -source=store.go -package=mocks Storage
 type Storage interface {
 	CreateAll(ctx context.Context, metrics map[string]MetricR) error
 	Create(ctx context.Context, m *Metric) error
@@ -19,7 +21,19 @@ type Storage interface {
 	Delete(ctx context.Context, id string, mType string) error
 }
 
-// MetricR represents a metric along with a flag indicating its existence in the storage.
+//go:generate mockgen -destination=../postgres/mock_pgclient.go -source=store.go -package=postgres Client
+type Client interface {
+	Close() error
+	Ping() error
+	SelectByIDAndType(ctx context.Context, id string, mType string) (*Metric, error)
+	Insert(ctx context.Context, m *Metric) error
+	SaveAll(ctx context.Context, metrics map[string]MetricR) error
+	Update(context.Context, *Metric) error
+	Delete(context.Context, string, string) error
+	ApplyMigration(ctx context.Context, sql string) error
+}
+
+// MetricR represents a metric along with a flag indicating its existence in the store.
 type MetricR struct {
 	Metric   *Metric // Metric information
 	IsExists bool    // Flag indicating whether the metric already exists in the storage
@@ -39,7 +53,7 @@ const (
 	MTypeCounter string = "counter"
 )
 
-// SaveAllMetric saves multiple metrics in the storage.
+// SaveAllMetric saves multiple metrics in the store.
 // It takes a context, a storage instance, and a slice of Metric pointers.
 // Metrics are grouped by their ID and type to avoid duplication.
 // If a metric with the same ID and type already exists in the storage and its type is counter,

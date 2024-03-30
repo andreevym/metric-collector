@@ -1,5 +1,5 @@
 definitions:
-  storage.Metric:
+  store.Metric:
     properties:
       delta:
         description: Delta value (applicable for counter type)
@@ -66,7 +66,7 @@ paths:
         "200":
           description: Metric value inserted or updated successfully
           schema:
-            $ref: '#/definitions/storage.Metric'
+            $ref: '#/definitions/store.Metric'
         "400":
           description: Bad request. Invalid metric parameters or JSON payload
           schema:
@@ -84,7 +84,7 @@ paths:
           required: true
           schema:
             items:
-              $ref: '#/definitions/storage.Metric'
+              $ref: '#/definitions/store.Metric'
             type: array
       produces:
         - application/json
@@ -148,7 +148,7 @@ paths:
         "200":
           description: Metric value retrieved successfully
           schema:
-            $ref: '#/definitions/storage.Metric'
+            $ref: '#/definitions/store.Metric'
         "400":
           description: Bad request. Invalid JSON payload
           schema:

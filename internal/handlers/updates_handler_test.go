@@ -8,8 +8,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,76 +23,76 @@ func TestUpdateMetrics(t *testing.T) {
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
-	metrics := []storage.Metric{}
+	metrics := []store.Metric{}
 	d1 := int64(1)
 	d2 := int64(2)
 	metrics = append(
 		metrics,
-		storage.Metric{
+		store.Metric{
 			ID:    "a",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &d1,
 		},
-		storage.Metric{
+		store.Metric{
 			ID:    "b",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &d1,
 		},
-		storage.Metric{
+		store.Metric{
 			ID:    "b",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &d2,
 		},
-		storage.Metric{
+		store.Metric{
 			ID:    "a",
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &d2,
 		},
 	)
 	reqBody, err := json.Marshal(&metrics)
 	require.NoError(t, err)
-	statusCode, contentType, get := testRequest(t, ts, http.MethodPost, "/updates/", bytes.NewBuffer(reqBody))
+	statusCode, contentType, get := testRequest(t, ts, http.MethodPost, PathPostUpdates, bytes.NewBuffer(reqBody))
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, UpdatesMetricContentType, contentType)
 	require.Equal(t, "", get)
 
-	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/updates/", bytes.NewBuffer(reqBody))
+	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, PathPostUpdates, bytes.NewBuffer(reqBody))
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, UpdatesMetricContentType, contentType)
 	require.Equal(t, "", get)
 
 	expectedDelta := d1 + d2 + d1 + d2
-	metric := storage.Metric{
+	metric := store.Metric{
 		ID:    "a",
-		MType: storage.MTypeCounter,
+		MType: store.MTypeCounter,
 		Delta: &expectedDelta,
 	}
 	expected, err := json.Marshal(metric)
 	require.NoError(t, err)
-	reqBody, err = json.Marshal(storage.Metric{
+	reqBody, err = json.Marshal(store.Metric{
 		ID:    metric.ID,
 		MType: metric.MType,
 	})
 	require.NoError(t, err)
-	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes.NewBuffer(reqBody))
+	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, PathValue+"/", bytes.NewBuffer(reqBody))
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, ValueMetricContentType, contentType)
 	require.JSONEq(t, string(expected), get)
 
-	metric = storage.Metric{
+	metric = store.Metric{
 		ID:    "b",
-		MType: storage.MTypeCounter,
+		MType: store.MTypeCounter,
 		Delta: &expectedDelta,
 		Value: nil,
 	}
 	expected, err = json.Marshal(metric)
 	require.NoError(t, err)
-	reqBody, err = json.Marshal(storage.Metric{
+	reqBody, err = json.Marshal(store.Metric{
 		ID:    metric.ID,
 		MType: metric.MType,
 	})
 	require.NoError(t, err)
-	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, "/value/", bytes.NewBuffer(reqBody))
+	statusCode, contentType, get = testRequest(t, ts, http.MethodPost, PathValue+"/", bytes.NewBuffer(reqBody))
 	require.Equal(t, http.StatusOK, statusCode)
 	require.Equal(t, ValueMetricContentType, contentType)
 	require.JSONEq(t, string(expected), get)

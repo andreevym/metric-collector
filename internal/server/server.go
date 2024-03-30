@@ -13,9 +13,9 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/middleware"
-	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/postgres"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	httpSwagger "github.com/swaggo/http-swagger"
 	"go.uber.org/zap"
@@ -27,10 +27,10 @@ import (
 // The server starts listening on the specified address for incoming HTTP requests.
 //
 // Parameters:
-//   - databaseDsn: The DSN (Data Source Name) for the database connection. Leave empty for in-memory storage.
-//   - fileStoragePath: The path to the file storage for backup purposes. Only applicable for in-memory storage.
-//   - storeInterval: The interval at which metrics are stored to disk. Only applicable for in-memory storage.
-//   - restore: A flag indicating whether to restore metrics from the file storage. Only applicable for in-memory storage.
+//   - databaseDsn: The DSN (Data Source Name) for the database connection. Leave empty for in-memory store.
+//   - fileStoragePath: The path to the file storage for backup purposes. Only applicable for in-memory store.
+//   - storeInterval: The interval at which metrics are stored to disk. Only applicable for in-memory store.
+//   - restore: A flag indicating whether to restore metrics from the file store. Only applicable for in-memory store.
 //   - secretKey: The secret key used for hashing request and response bodies.
 //   - address: The address on which the HTTP server should listen (e.g., ":8080").
 //
@@ -61,8 +61,8 @@ func Start(
 	// Initialize a background context
 	ctx := context.Background()
 
-	var metricStorage storage.Storage
-	var pgClient *postgres.Client
+	var metricStorage store.Storage
+	var pgClient *postgres.PgClient
 	var err error
 
 	// Initialize metric storage based on the database DSN and file storage path
@@ -83,7 +83,7 @@ func Start(
 		metricStorage = memMetricStorage
 	} else {
 		// Create a PostgreSQL client and storage
-		pgClient, err = postgres.NewClient(databaseDsn)
+		pgClient, err = postgres.NewPgClient(databaseDsn)
 		if err != nil {
 			return fmt.Errorf("can't create database client: %w", err)
 		}
