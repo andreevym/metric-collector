@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"bytes"
+	context2 "context"
 	"encoding/json"
 	"io"
 	"math/rand"
@@ -13,8 +14,9 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/hash"
 	"github.com/andreevym/metric-collector/internal/middleware"
-	"github.com/andreevym/metric-collector/internal/storage"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
+	"github.com/andreevym/metric-collector/internal/storage/store"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -31,7 +33,7 @@ func TestUpdateHandler(t *testing.T) {
 		name       string
 		want       want
 		request    string
-		metrics    *storage.Metric
+		metrics    *store.Metric
 		httpMethod string
 	}{
 		{
@@ -43,9 +45,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &d,
 			},
 		},
@@ -58,9 +60,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &d,
 			},
 		},
@@ -73,9 +75,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 				Value: &f,
 			},
 		},
@@ -88,9 +90,9 @@ func TestUpdateHandler(t *testing.T) {
 			},
 			request:    "/update/",
 			httpMethod: http.MethodPost,
-			metrics: &storage.Metric{
+			metrics: &store.Metric{
 				ID:    "test",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 				Value: &f,
 			},
 		},
@@ -137,7 +139,7 @@ func TestUpdateHandler(t *testing.T) {
 }
 
 func signedTestRequest(
-	t *testing.T,
+	t require.TestingT,
 	ts *httptest.Server,
 	method, path string,
 	reqBody []byte,
@@ -170,7 +172,7 @@ func signedTestRequest(
 }
 
 func testRequest(
-	t *testing.T,
+	t require.TestingT,
 	ts *httptest.Server,
 	method string,
 	path string,
@@ -185,7 +187,7 @@ func TestUpdates(t *testing.T) {
 	valueCounter1, valueCounter2 := int64(rand.Int()), int64(rand.Int())
 	valueGauge1, valueGauge2 := float64(rand.Float32()), float64(rand.Float32())
 
-	metrics := []storage.Metric{
+	metrics := []store.Metric{
 		{
 			ID:    idCounter,
 			MType: "counter",
@@ -230,4 +232,52 @@ func TestUpdates(t *testing.T) {
 	assert.Equal(t, contentType, contentType)
 	res := strconv.FormatFloat(valueGauge2, 'f', -1, 64)
 	assert.Equal(t, res, get)
+}
+
+func BenchmarkBuildMetricByParam(b *testing.B) {
+	request, err := prepareTestData()
+	require.NoError(b, err)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err = handlers.BuildMetricBySplitParam(request)
+		require.NoError(b, err)
+	}
+}
+
+func BenchmarkBuildMetricByChiParam(b *testing.B) {
+	request, err := prepareTestData()
+	require.NoError(b, err)
+
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, err = handlers.BuildMetricByChiParam(request)
+		require.NoError(b, err)
+	}
+}
+
+func prepareTestData() (*http.Request, error) {
+	router := chi.NewRouter()
+	router.Post(handlers.PathPostUpdate+"/{metricType}/{metricName}/{metricValue}", nil)
+
+	// Simulate URL params
+	params := chi.RouteParams{
+		Keys:   []string{"metricType", "metricName", "metricValue"},
+		Values: []string{"counter", "test", "1"},
+	}
+
+	context := chi.NewRouteContext()
+	context.Routes = router
+	context.URLParams = params
+	context.RouteMethod = "POST"
+	context.RoutePath = "/update/{metricType}/{metricName}/{metricValue}"
+
+	request, err := http.NewRequest("POST", "http://localhost:8080/update/counter/test/1", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add context to request
+	r := request.WithContext(context2.WithValue(context2.Background(), chi.RouteCtxKey, context))
+	return r, nil
 }

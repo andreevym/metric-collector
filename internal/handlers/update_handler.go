@@ -3,12 +3,14 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/go-chi/chi/v5"
 	"go.uber.org/zap"
 )
@@ -18,8 +20,19 @@ const (
 	ValueMetricContentType  = "application/json"
 )
 
-// PostUpdateHandler method for insert or update metrics
-// example request url: http://<АДРЕС_СЕРВЕРА>/update/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>/<ЗНАЧЕНИЕ_МЕТРИКИ>
+// PostUpdateHandler method for insert or update metrics.
+// This endpoint is used to insert or update metric values by sending a POST request with the metric ID, type, and value.
+// @Summary Insert or update metric value
+// @Description Inserts or updates the value of a metric specified by its type, name, and value.
+// This endpoint accepts a POST request with the metric ID, type, and value as path parameters.
+// Supported metric types are 'gauge' and 'counter'.
+// @Param metricType path string true "Type of the metric ('gauge' or 'counter')"
+// @Param metricName path string true "Name of the metric"
+// @Param metricValue path number true "Value of the metric"
+// @Produce json
+// @Success 200 {object} store.Metric "Metric value inserted or updated successfully"
+// @Failure 400 {string} string "Bad request. Invalid metric parameters or JSON payload"
+// @Router /update/{metricType}/{metricName}/{metricValue} [post]
 func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", UpdateMetricContentType)
 
@@ -29,13 +42,13 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if metric.MType != storage.MTypeGauge && metric.MType != storage.MTypeCounter {
+	if metric.MType != store.MTypeGauge && metric.MType != store.MTypeCounter {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	foundValue, err := s.storage.Read(r.Context(), metric.ID, metric.MType)
-	if err != nil && !errors.Is(err, storage.ErrValueNotFound) {
+	if err != nil && !errors.Is(err, store.ErrValueNotFound) {
 		logger.Logger().Error("failed update metric",
 			zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
@@ -49,7 +62,7 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 			return
 		}
 	} else {
-		if metric.MType == storage.MTypeCounter {
+		if metric.MType == store.MTypeCounter {
 			newDelta := *metric.Delta + *foundValue.Delta
 			metric.Delta = &newDelta
 		}
@@ -73,16 +86,16 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func buildMetricByRequest(r *http.Request) (*storage.Metric, error) {
+func buildMetricByRequest(r *http.Request) (*store.Metric, error) {
 	metric, err := buildMetricByBody(r.Body)
 	if err == nil && metric != nil {
 		return metric, nil
 	}
 
-	return buildMetricByParam(r)
+	return BuildMetricByChiParam(r)
 }
 
-func buildMetricByBody(body io.ReadCloser) (*storage.Metric, error) {
+func buildMetricByBody(body io.ReadCloser) (*store.Metric, error) {
 	bytes, err := io.ReadAll(body)
 	if err != nil {
 		logger.Logger().Error("error", zap.Error(err))
@@ -92,23 +105,23 @@ func buildMetricByBody(body io.ReadCloser) (*storage.Metric, error) {
 		return nil, errors.New("body len is empty")
 	}
 
-	metric := &storage.Metric{}
+	metric := &store.Metric{}
 	err = json.Unmarshal(bytes, &metric)
 	return metric, err
 }
 
-func buildMetricByParam(r *http.Request) (*storage.Metric, error) {
-	metric := &storage.Metric{}
+func BuildMetricByChiParam(r *http.Request) (*store.Metric, error) {
+	metric := &store.Metric{}
 	metric.MType = chi.URLParam(r, "metricType")
 	metric.ID = chi.URLParam(r, "metricName")
 	v := chi.URLParam(r, "metricValue")
-	if metric.MType == storage.MTypeCounter {
+	if metric.MType == store.MTypeCounter {
 		delta, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
 			return nil, err
 		}
 		metric.Delta = &delta
-	} else if metric.MType == storage.MTypeGauge {
+	} else if metric.MType == store.MTypeGauge {
 		value, err := strconv.ParseFloat(v, 64)
 		if err != nil {
 			return nil, err
@@ -119,4 +132,46 @@ func buildMetricByParam(r *http.Request) (*storage.Metric, error) {
 	}
 
 	return metric, nil
+}
+
+const (
+	countRequestURIParam    = 5
+	indexMetricName         = 3
+	indexMetricType         = 2
+	indexMetricValueOrDelta = 4
+)
+
+func BuildMetricBySplitParam(r *http.Request) (*store.Metric, error) {
+	split := make([]string, countRequestURIParam)
+	copy(split, strings.Split(r.URL.Path, "/"))
+
+	if len(split) < countRequestURIParam {
+		return nil, errors.New("unknown size param")
+	}
+
+	m := &store.Metric{
+		MType: split[indexMetricType],
+		ID:    split[indexMetricName],
+	}
+
+	valueOrDelta := split[indexMetricValueOrDelta]
+
+	switch m.MType {
+	case store.MTypeCounter:
+		delta, err := strconv.ParseInt(valueOrDelta, 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse delta for metric: %w", err)
+		}
+		m.Delta = &delta
+	case store.MTypeGauge:
+		value, err := strconv.ParseFloat(valueOrDelta, 64)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse value for metric: %w", err)
+		}
+		m.Value = &value
+	default:
+		return nil, errors.New("unknown type")
+	}
+
+	return m, nil
 }

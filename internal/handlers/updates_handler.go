@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"go.uber.org/zap"
 )
 
@@ -14,6 +14,19 @@ const (
 	UpdatesMetricContentType = "application/json"
 )
 
+// PostUpdatesHandler method for bulk insert or update of metrics.
+// This endpoint is used to bulk insert or update metric values by sending a POST request with a JSON array of metrics.
+// @Summary Bulk insert or update metrics
+// @Description Bulk inserts or updates metric values.
+// This endpoint accepts a POST request with a JSON array of metrics.
+// Each metric should have an ID, type, and either delta (for counter type) or value (for gauge type).
+// Supported metric types are 'gauge' and 'counter'.
+// @Accept json
+// @Produce json
+// @Param metrics body []store.Metric true "Array of metrics to insert or update"
+// @Success 200 {string} string "Metrics inserted or updated successfully"
+// @Failure 400 {string} string "Bad request. Invalid JSON payload or metric parameters"
+// @Router /updates [post]
 func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", UpdatesMetricContentType)
 
@@ -24,7 +37,7 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	var metrics []*storage.Metric
+	var metrics []*store.Metric
 	err = json.Unmarshal(bytes, &metrics)
 	if err != nil {
 		logger.Logger().Error("err", zap.Error(err))
@@ -32,5 +45,5 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	storage.SaveAllMetric(r.Context(), s.storage, metrics)
+	store.SaveAllMetric(r.Context(), s.storage, metrics)
 }

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,13 +16,13 @@ func TestEndToEndBackup(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	data := make(map[string]*storage.Metric)
+	data := make(map[string]*store.Metric)
 	for i := 0; i < 1000; i++ {
 		delta := int64(i)
 		id := strconv.Itoa(i)
-		data[id] = &storage.Metric{
+		data[id] = &store.Metric{
 			ID:    id,
-			MType: storage.MTypeCounter,
+			MType: store.MTypeCounter,
 			Delta: &delta,
 			Value: nil,
 		}

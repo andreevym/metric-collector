@@ -6,11 +6,11 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 )
 
-func mapMemStatToMetrics(stats *runtime.MemStats) ([]*storage.Metric, error) {
-	metrics := make([]*storage.Metric, 0)
+func mapMemStatToMetrics(stats *runtime.MemStats) ([]*store.Metric, error) {
+	metrics := make([]*store.Metric, 0)
 	metrics = mustAppendGaugeMetricFloat64(metrics, "RandomValue", rand.Float64())
 	metrics = mustAppendGaugeMetricUint64(metrics, "Alloc", stats.Alloc)
 	metrics = mustAppendGaugeMetricUint64(metrics, "BuckHashSys", stats.BuckHashSys)
@@ -42,36 +42,36 @@ func mapMemStatToMetrics(stats *runtime.MemStats) ([]*storage.Metric, error) {
 	return metrics, nil
 }
 
-func mustAppendGaugeMetricUint64(metrics []*storage.Metric, id string, v uint64) []*storage.Metric {
+func mustAppendGaugeMetricUint64(metrics []*store.Metric, id string, v uint64) []*store.Metric {
 	f, err := strconv.ParseFloat(fmt.Sprintf("%v", v), 64)
 	if err != nil {
 		panic(err)
 	}
-	metrics = append(metrics, &storage.Metric{
+	metrics = append(metrics, &store.Metric{
 		ID:    id,
-		MType: storage.MTypeGauge,
+		MType: store.MTypeGauge,
 		Value: &f,
 	})
 	return metrics
 }
 
-func mustAppendGaugeMetricUint32(metrics []*storage.Metric, id string, v uint32) []*storage.Metric {
+func mustAppendGaugeMetricUint32(metrics []*store.Metric, id string, v uint32) []*store.Metric {
 	f, err := strconv.ParseFloat(fmt.Sprintf("%v", v), 32)
 	if err != nil {
 		panic(err)
 	}
-	metrics = append(metrics, &storage.Metric{
+	metrics = append(metrics, &store.Metric{
 		ID:    id,
-		MType: storage.MTypeGauge,
+		MType: store.MTypeGauge,
 		Value: &f,
 	})
 	return metrics
 }
 
-func mustAppendGaugeMetricFloat64(metrics []*storage.Metric, id string, f float64) []*storage.Metric {
-	metrics = append(metrics, &storage.Metric{
+func mustAppendGaugeMetricFloat64(metrics []*store.Metric, id string, f float64) []*store.Metric {
+	metrics = append(metrics, &store.Metric{
 		ID:    id,
-		MType: storage.MTypeGauge,
+		MType: store.MTypeGauge,
 		Value: &f,
 	})
 	return metrics

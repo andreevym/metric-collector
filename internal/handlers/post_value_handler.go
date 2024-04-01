@@ -5,11 +5,23 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 )
 
-// PostValueHandler method return metric value by metric type and metric name
-// example request url: http://<АДРЕС_СЕРВЕРА>/value/<ТИП_МЕТРИКИ>/<ИМЯ_МЕТРИКИ>
+// PostValueHandler method returns metric value by metric type and metric name.
+// This endpoint is used to retrieve metric values by sending a POST request with JSON payload.
+// @Summary Retrieve metric value by type and name
+// @Description Retrieves the value of a metric specified by its type and name.
+// This endpoint accepts a JSON payload containing the metric ID and type.
+// Supported metric types are 'gauge' and 'counter'.
+// @Param metricType path string true "Type of the metric ('gauge' or 'counter')"
+// @Param metricName path string true "Name of the metric"
+// @Accept json
+// @Produce json
+// @Success 200 {object} store.Metric "Metric value retrieved successfully"
+// @Failure 400 {string} string "Bad request. Invalid JSON payload"
+// @Failure 404 {string} string "Metric value not found"
+// @Router /value/{metricType}/{metricName} [post]
 func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", ValueMetricContentType)
 
@@ -19,7 +31,7 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	m := storage.Metric{}
+	m := store.Metric{}
 	err = json.Unmarshal(bytes, &m)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)

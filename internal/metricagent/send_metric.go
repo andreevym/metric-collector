@@ -13,7 +13,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/hash"
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
@@ -24,7 +24,7 @@ const retryAttempts = 3
 // sendLastMemStats send metric to server by ticker and address
 func sendMetric(
 	ctx context.Context,
-	inputCh chan []*storage.Metric,
+	inputCh chan []*store.Metric,
 	secretKey string,
 	reportDuration time.Duration,
 	address string,
@@ -51,7 +51,7 @@ func sendRequest(
 	ctx context.Context,
 	secretKey string,
 	address string,
-	metric []*storage.Metric,
+	metric []*store.Metric,
 ) error {
 	b, err := json.Marshal(metric)
 	if err != nil {

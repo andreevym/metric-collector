@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/storage"
+	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/mem"
 	"go.uber.org/zap"
@@ -17,9 +17,9 @@ func collectMetric(
 	ctx context.Context,
 	pollDuration time.Duration,
 	rateLimit int,
-) (chan []*storage.Metric, error) {
+) (chan []*store.Metric, error) {
 	// создаем буферизованный канал для отправки результатов
-	metricsCh := make(chan []*storage.Metric, rateLimit)
+	metricsCh := make(chan []*store.Metric, rateLimit)
 
 	go func() {
 		defer close(metricsCh)
@@ -29,7 +29,7 @@ func collectMetric(
 		var pollCountAtomic atomic.Int64
 		ticker := time.NewTicker(pollDuration)
 		for t := range ticker.C {
-			metrics := make([]*storage.Metric, 0)
+			metrics := make([]*store.Metric, 0)
 
 			logger.Logger().Debug("pollLastMemStatByTicker", zap.String("ticker", t.String()))
 			memStats := runtime.MemStats{}
@@ -43,9 +43,9 @@ func collectMetric(
 
 			pollCountAtomic.Add(1)
 			pollCount := pollCountAtomic.Load()
-			metrics = append(metrics, &storage.Metric{
+			metrics = append(metrics, &store.Metric{
 				ID:    "PollCount",
-				MType: storage.MTypeCounter,
+				MType: store.MTypeCounter,
 				Delta: &pollCount,
 			})
 
@@ -56,15 +56,15 @@ func collectMetric(
 				)
 				return
 			}
-			metrics = append(metrics, &storage.Metric{
+			metrics = append(metrics, &store.Metric{
 				ID:    "TotalMemory",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 				Value: total,
 			})
 
-			metrics = append(metrics, &storage.Metric{
+			metrics = append(metrics, &store.Metric{
 				ID:    "FreeMemory",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 				Value: free,
 			})
 			cpuUtilization, err := CPUUtilization()
@@ -74,9 +74,9 @@ func collectMetric(
 				)
 				return
 			}
-			metrics = append(metrics, &storage.Metric{
+			metrics = append(metrics, &store.Metric{
 				ID:    "PollCount",
-				MType: storage.MTypeGauge,
+				MType: store.MTypeGauge,
 				Value: cpuUtilization,
 			})
 
