@@ -9,7 +9,7 @@
 package main
 
 import (
-	"github.com/andreevym/metric-collector/internal/noexitchecker"
+	"github.com/andreevym/metric-collector/pkg/noexitchecker"
 	"github.com/gostaticanalysis/funcstat"
 	"github.com/gostaticanalysis/zapvet/passes/fieldtype"
 	"golang.org/x/tools/go/analysis"
