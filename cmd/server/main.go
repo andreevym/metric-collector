@@ -3,12 +3,33 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/andreevym/metric-collector/internal/config"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/server"
 )
+
+var buildVersion string
+var buildDate string
+var buildCommit string
+
+func printVersion() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+
+	fmt.Printf("Build version: %s\n", buildVersion)
+	fmt.Printf("Build date: %s\n", buildDate)
+	fmt.Printf("Build commit: %s\n", buildCommit)
+}
 
 // @title Metric Collector API
 // @version 18.0
@@ -22,6 +43,8 @@ import (
 // main is the entry point of the application.
 // It initializes configurations, logging, and starts the server.
 func main() {
+	printVersion()
+
 	// Initialize server configurations.
 	cfg := config.NewServerConfig().Init()
 	if cfg == nil {
