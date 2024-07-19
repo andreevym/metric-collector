@@ -57,6 +57,7 @@ func main() {
 	// Create and run the agent.
 	err = metricagent.NewAgent(
 		cfg.SecretKey,
+		cfg.CryptoKey,
 		cfg.Address,
 		pollDuration,
 		reportDuration,

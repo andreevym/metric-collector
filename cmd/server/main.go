@@ -64,6 +64,7 @@ func main() {
 		cfg.StoreInterval,
 		cfg.Restore,
 		cfg.SecretKey,
+		cfg.CryptoKey,
 		cfg.Address,
 	)
 	if err != nil {
