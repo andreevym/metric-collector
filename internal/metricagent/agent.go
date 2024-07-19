@@ -14,11 +14,13 @@ type Agent struct {
 	ReportDuration time.Duration
 	LiveTime       time.Duration
 	SecretKey      string
+	CryptoKey      string
 	RateLimit      int
 }
 
 func NewAgent(
 	secretKey string,
+	cryptoKey string,
 	address string,
 	pollDuration time.Duration,
 	reportDuration time.Duration,
@@ -31,6 +33,7 @@ func NewAgent(
 		ReportDuration: reportDuration,
 		LiveTime:       liveTime,
 		SecretKey:      secretKey,
+		CryptoKey:      cryptoKey,
 		RateLimit:      rateLimit,
 	}
 }
@@ -50,7 +53,7 @@ func (a Agent) Run() error {
 		go func() {
 			// откладываем уменьшение счетчика в WaitGroup, когда завершится горутина
 			defer wg.Done()
-			sendMetric(ctx, metricsCh, a.SecretKey, a.ReportDuration, a.Address)
+			sendMetric(ctx, metricsCh, a.SecretKey, a.CryptoKey, a.ReportDuration, a.Address)
 		}()
 	}
 	wg.Wait()

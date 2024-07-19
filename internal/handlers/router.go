@@ -14,10 +14,7 @@ const (
 	PathGetRoot     = "/"
 )
 
-func NewRouter(
-	s *ServiceHandlers,
-	middlewares ...func(http.Handler) http.Handler,
-) *chi.Mux {
+func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middlewares...)

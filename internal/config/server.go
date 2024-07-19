@@ -28,6 +28,8 @@ type ServerConfig struct {
 	// SecretKey секретный ключ, если переменная не пустая "+
 	// тогда добавляем в заголовок каждого запроса hash от request body под ключом HashSHA256
 	SecretKey string `env:"KEY"`
+	// CryptoKey путь до файла с публичным ключом.
+	CryptoKey string `env:"CRYPTO_KEY"`
 }
 
 func NewServerConfig() *ServerConfig {
@@ -47,6 +49,7 @@ func (c *ServerConfig) Init() *ServerConfig {
 	flag.StringVar(&c.DatabaseDsn, "d", "", "строка с адресом подключения к БД")
 	flag.StringVar(&c.SecretKey, "k", "", "секретный ключ, если переменная не пустая "+
 		"тогда добавляем в заголовок каждого запроса hash от request body под ключом HashSHA256")
+	flag.StringVar(&c.CryptoKey, "crypto-key", "", "путь до файла с публичным ключом")
 	flag.Parse()
 
 	if err := env.Parse(c); err != nil {

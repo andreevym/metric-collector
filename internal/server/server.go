@@ -39,23 +39,25 @@ import (
 //
 // Example:
 //
-//	err := Start(
-//	    "postgresql://user:password@localhost:5432/database",
-//	    "/path/to/file/storage",
-//	    3600,
-//	    true,
-//	    "my-secret-key",
-//	    ":8080",
-//	)
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
+//		err := Start(
+//		    "postgresql://user:password@localhost:5432/database",
+//		    "/path/to/file/storage",
+//		    3600,
+//		    true,
+//		    "my-secret-key",
+//	     "",
+//		    ":8080",
+//		)
+//		if err != nil {
+//		    log.Fatal(err)
+//		}
 func Start(
 	databaseDsn string,
 	fileStoragePath string,
 	storeInterval int,
 	restore bool,
 	secretKey string,
+	cryptoKey string,
 	address string,
 ) error {
 	// Initialize a background context
@@ -121,20 +123,23 @@ func Start(
 	}
 
 	// Create a new middleware instance with the provided secret key
-	m := middleware.NewMiddleware(secretKey)
+	m := middleware.NewMiddleware(secretKey, cryptoKey)
 
 	// Create service handlers with the initialized metric storage and PostgreSQL client
 	serviceHandlers := handlers.NewServiceHandlers(metricStorage, pgClient)
 
+	middlewares := make([]func(http.Handler) http.Handler, 0)
+	if m.CryptoKey != "" {
+		middlewares = append(middlewares, m.RequestCryptoMiddleware)
+	}
+	middlewares = append(middlewares, m.RequestGzipMiddleware)
+	middlewares = append(middlewares, m.ResponseGzipMiddleware)
+	middlewares = append(middlewares, m.RequestLoggerMiddleware)
+	middlewares = append(middlewares, m.RequestHashMiddleware)
+	middlewares = append(middlewares, m.ResponseHashMiddleware)
+
 	// Create a new router with the service handlers and configured middleware
-	var router = handlers.NewRouter(
-		serviceHandlers,
-		m.RequestGzipMiddleware,
-		m.ResponseGzipMiddleware,
-		m.RequestLoggerMiddleware,
-		m.RequestHashMiddleware,
-		m.ResponseHashMiddleware,
-	)
+	router := handlers.NewRouter(serviceHandlers, middlewares...)
 
 	// Serve Swagger UI
 	router.Get("/swagger/*", httpSwagger.Handler(

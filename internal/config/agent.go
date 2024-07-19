@@ -19,6 +19,8 @@ type AgentConfig struct {
 	// SecretKey секретный ключ, если указан, то будем добавлять заголовок HashSHA256 в каждый запрос
 	SecretKey string `env:"KEY"`
 	RateLimit int    `env:"RATE_LIMIT"`
+	// CryptoKey путь до файла с публичным ключом.
+	CryptoKey string `env:"CRYPTO_KEY"`
 }
 
 func NewAgentConfig() *AgentConfig {
@@ -26,13 +28,14 @@ func NewAgentConfig() *AgentConfig {
 }
 
 func (c *AgentConfig) Init() *AgentConfig {
-	flag.StringVar(&c.Address, "a", "localhost:8080", "address and port to run server")
+	flag.StringVar(&c.Address, "a", "localhost:8080", "адрес и порт для запуска сервера")
 	flag.StringVar(&c.SecretKey, "k", "", "secret key, if variable is not empty will "+
 		"make hash from request body and add header HashSHA256 for each http request")
 	flag.IntVar(&c.ReportInterval, "r", 10, "report interval (seconds)")
 	flag.IntVar(&c.PollInterval, "p", 2, "poll interval (seconds)")
 	flag.StringVar(&c.LogLevel, "l", "info", "log level")
 	flag.IntVar(&c.RateLimit, "i", 1, "количество одновременно исходящих запросов на сервер")
+	flag.StringVar(&c.CryptoKey, "crypto-key", "", "путь до файла с публичным ключом")
 	flag.Parse()
 
 	if err := env.Parse(c); err != nil {
