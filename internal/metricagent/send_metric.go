@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 
@@ -94,7 +95,8 @@ func sendRequest(
 				return err
 			}
 
-			ip, err := identifyIP()
+			var ip net.IP
+			ip, err = identifyIP()
 			if err != nil {
 				logger.Logger().Error("failed to identify IP", zap.Error(err))
 				return fmt.Errorf("failed to identify IP: %w", err)
