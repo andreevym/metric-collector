@@ -214,7 +214,7 @@ func TestPostHandler(t *testing.T) {
 				assert.NoError(t, err)
 			}
 			serviceHandlers := handlers.NewServiceHandlers(memStorage, nil)
-			m := middleware.NewMiddleware(secretKey, "")
+			m := middleware.NewMiddleware(secretKey, "", nil)
 			router := handlers.NewRouter(serviceHandlers, m.RequestHashMiddleware)
 			ts := httptest.NewServer(router)
 			defer ts.Close()
@@ -388,7 +388,7 @@ func BenchmarkServiceHandlers_PostValueHandler(t *testing.B) {
 				assert.NoError(t, err)
 			}
 			serviceHandlers := handlers.NewServiceHandlers(memStorage, nil)
-			m := middleware.NewMiddleware(secretKey, "")
+			m := middleware.NewMiddleware(secretKey, "", nil)
 			router := handlers.NewRouter(serviceHandlers, m.RequestHashMiddleware)
 			ts := httptest.NewServer(router)
 			defer ts.Close()

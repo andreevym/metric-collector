@@ -78,7 +78,7 @@ func main() {
 		logger.Logger().Fatal("can't create metric storage", zap.Error(err))
 	}
 
-	s := server.NewServer(pgClient, storage, cfg.SecretKey, cfg.CryptoKey)
+	s := server.NewServer(pgClient, storage, cfg.SecretKey, cfg.CryptoKey, cfg.TrustedSubnet)
 	go func() {
 		defer cancel()
 		s.Run(cfg.Address)

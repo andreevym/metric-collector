@@ -32,6 +32,8 @@ type ServerConfig struct {
 	SecretKey string `env:"KEY" json:"key"`
 	// CryptoKey путь до файла с публичным ключом.
 	CryptoKey string `env:"CRYPTO_KEY" json:"crypto_key"`
+	// TrustedSubnet строковое представление бесклассовой адресации (CIDR)
+	TrustedSubnet string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 func NewServerConfig() *ServerConfig {
@@ -66,6 +68,7 @@ func (c *ServerConfig) Init() *ServerConfig {
 	flag.StringVar(&c.SecretKey, "k", "", "секретный ключ, если переменная не пустая "+
 		"тогда добавляем в заголовок каждого запроса hash от request body под ключом HashSHA256")
 	flag.StringVar(&c.CryptoKey, "crypto-key", "", "путь до файла с публичным ключом")
+	flag.StringVar(&c.TrustedSubnet, "t", "", "строковое представление бесклассовой адресации (CIDR)")
 	var configPath string
 	flag.StringVar(&configPath, "config", "", "путь до конфиг файла, пример './config/server.json'")
 	flag.Parse()

@@ -93,6 +93,15 @@ func sendRequest(
 					zap.String("request body", string(b)), zap.Error(err))
 				return err
 			}
+
+			ip, err := identifyIP()
+			if err != nil {
+				logger.Logger().Error("failed to identify IP", zap.Error(err))
+				return fmt.Errorf("failed to identify IP: %w", err)
+			}
+			if ip != nil {
+				request.Header.Set("X-Real-IP", ip.String())
+			}
 			request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 			request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
 			request.Header.Set("Content-Encoding", compressor.ContentEncoding)

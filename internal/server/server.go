@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,8 +31,17 @@ func NewServer(
 	metricStorage store.Storage,
 	secretKey string,
 	cryptoKey string,
+	trustedSubnet string,
 ) *Server {
-	m := middleware.NewMiddleware(secretKey, cryptoKey)
+	var err error
+	var ipTrustedSubnet *net.IPNet
+	if trustedSubnet != "" {
+		_, ipTrustedSubnet, err = net.ParseCIDR(trustedSubnet)
+		if err != nil {
+			panic(fmt.Errorf("failed to parse trusted subnet: %w", err))
+		}
+	}
+	m := middleware.NewMiddleware(secretKey, cryptoKey, ipTrustedSubnet)
 	serviceHandlers := handlers.NewServiceHandlers(metricStorage, pgClient)
 	middlewares := []func(http.Handler) http.Handler{
 		m.RequestGzipMiddleware,
@@ -42,6 +52,9 @@ func NewServer(
 	}
 	if m.CryptoKey != "" {
 		middlewares = append(middlewares, m.RequestCryptoMiddleware)
+	}
+	if m.TrustedSubnet != nil {
+		middlewares = append(middlewares, m.TrustedSubnetMiddleware)
 	}
 	router := handlers.NewRouter(serviceHandlers, middlewares...)
 	return &Server{Handler: router}
