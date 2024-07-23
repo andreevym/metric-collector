@@ -8,7 +8,10 @@ import (
 	"io/fs"
 	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/andreevym/metric-collector/internal/config"
 	"github.com/andreevym/metric-collector/internal/logger"
@@ -84,7 +87,29 @@ func main() {
 		s.Run(cfg.Address)
 	}()
 
-	s.WaitShutdown(ctx, storage)
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	for {
+		select {
+		case <-quit:
+			fmt.Println("Shutting down server...")
+
+			ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+			defer cancel()
+			if err := s.Server.Shutdown(ctx); err != nil {
+				log.Fatalf("Server shutdown failed: %v", err)
+			}
+			fmt.Println("Server stopped gracefully")
+			err := storage.Backup()
+			if err != nil {
+				logger.Logger().Fatal("Backup failed", zap.Error(err))
+			}
+			return
+		case <-ctx.Done():
+			logger.Logger().Info("Shutting down server...")
+			return
+		}
+	}
 }
 
 func BuildPgClient(ctx context.Context, cfg *config.ServerConfig) (*postgres.PgClient, error) {

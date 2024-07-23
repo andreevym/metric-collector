@@ -2,15 +2,9 @@
 package server
 
 import (
-	"context"
 	"fmt"
-	"log"
 	"net"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	_ "github.com/andreevym/metric-collector/docs"
 	"github.com/andreevym/metric-collector/internal/handlers"
@@ -66,30 +60,4 @@ func (s *Server) Run(addr string) {
 		logger.Logger().Fatal(fmt.Sprintf("failed to start server: %v", err))
 	}
 	logger.Logger().Info("Server listening", zap.String("addr", addr))
-}
-
-func (s *Server) WaitShutdown(ctx context.Context, storage store.Storage) {
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-
-	for {
-		select {
-		case <-quit:
-			fmt.Println("Shutting down server...")
-
-			ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-			defer cancel()
-			if err := s.Server.Shutdown(ctx); err != nil {
-				log.Fatalf("Server shutdown failed: %v", err)
-			}
-			fmt.Println("Server stopped gracefully")
-			err := storage.Backup()
-			if err != nil {
-				logger.Logger().Fatal("Backup failed", zap.Error(err))
-			}
-		case <-ctx.Done():
-			logger.Logger().Info("Shutting down server...")
-			return
-		}
-	}
 }

@@ -5,7 +5,9 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage/store"
+	"go.uber.org/zap"
 )
 
 // PostValueHandler method returns metric value by metric type and metric name.
@@ -52,6 +54,7 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 
 	_, err = io.WriteString(w, string(bytes))
 	if err != nil {
+		logger.Logger().Error("value can't be written", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

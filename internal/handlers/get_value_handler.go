@@ -8,6 +8,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage/store"
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 // GetValueHandler method return metric value by metric type and metric name
@@ -44,6 +45,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 		res := strconv.FormatInt(*v.Delta, 10)
 		_, err = io.WriteString(w, res)
 		if err != nil {
+			logger.Logger().Error("value can't be written", zap.Error(err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
@@ -56,6 +58,7 @@ func (s ServiceHandlers) GetValueHandler(w http.ResponseWriter, r *http.Request)
 		res := strconv.FormatFloat(*v.Value, 'f', -1, 64)
 		_, err = io.WriteString(w, res)
 		if err != nil {
+			logger.Logger().Error("value can't be written", zap.Error(err))
 			w.WriteHeader(http.StatusBadRequest)
 			return
 		}
