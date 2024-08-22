@@ -56,15 +56,12 @@ func printVersion() {
 func main() {
 	printVersion()
 
-	// Initialize server configurations.
-	cfg := config.NewServerConfig().Init()
-	if cfg == nil {
-		log.Fatal("server config can't be nil")
+	cfg, err := config.NewServerConfig().Init()
+	if err != nil {
+		log.Fatal("init server config", err)
 	}
 
-	// Initialize logger.
-	_, err := logger.NewLogger(cfg.LogLevel)
-	if err != nil {
+	if _, err := logger.NewLogger(cfg.LogLevel); err != nil {
 		log.Fatal("logger can't be initialized:", cfg.LogLevel, err)
 	}
 
@@ -76,7 +73,8 @@ func main() {
 	}
 	defer pgClient.Close()
 
-	storage, err := BuildStorage(pgClient, cfg)
+	storeInterval := time.Duration(cfg.StoreInterval) * time.Second
+	storage, err := BuildStorage(pgClient, cfg, storeInterval)
 	if err != nil {
 		logger.Logger().Fatal("can't create metric storage", zap.Error(err))
 	}
@@ -87,6 +85,22 @@ func main() {
 		s.Run(cfg.Address)
 	}()
 
+	if storeInterval > 0 {
+		go func() {
+			for {
+				ticker := time.NewTicker(storeInterval)
+				select {
+				case <-ctx.Done():
+					return
+				case <-ticker.C:
+					if err := storage.Backup(); err != nil {
+						logger.Logger().Fatal("Backup failed", zap.Error(err))
+					}
+				}
+			}
+		}()
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	for {
@@ -96,12 +110,13 @@ func main() {
 
 			ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 			defer cancel()
+
 			if err := s.Server.Shutdown(ctx); err != nil {
 				log.Fatalf("Server shutdown failed: %v", err)
 			}
 			fmt.Println("Server stopped gracefully")
-			err := storage.Backup()
-			if err != nil {
+
+			if err := storage.Backup(); err != nil {
 				logger.Logger().Fatal("Backup failed", zap.Error(err))
 			}
 			return
@@ -116,32 +131,33 @@ func BuildPgClient(ctx context.Context, cfg *config.ServerConfig) (*postgres.PgC
 	if cfg.DatabaseDsn == "" {
 		return nil, nil
 	}
+
 	// Create a PostgreSQL client and storage
 	pgClient, err := postgres.NewPgClient(cfg.DatabaseDsn)
 	if err != nil {
 		return nil, fmt.Errorf("can't create database client: %w", err)
 	}
+
 	// Ping the database to check the connection
-	err = pgClient.Ping()
-	if err != nil {
+	if err = pgClient.Ping(); err != nil {
 		return nil, fmt.Errorf("can't ping database: %w", err)
 	}
 
-	err = RunMigrationPostgres(ctx, pgClient)
-	if err != nil {
-		return nil, fmt.Errorf("can't migrate database: %w", err)
+	if err = applyMigrations(ctx, pgClient); err != nil {
+		return nil, fmt.Errorf("failed to apply migrations to the database: %w", err)
 	}
+
 	return pgClient, nil
 }
 
-func BuildStorage(pgClient *postgres.PgClient, cfg *config.ServerConfig) (store.Storage, error) {
+func BuildStorage(pgClient *postgres.PgClient, cfg *config.ServerConfig, storeInterval time.Duration) (store.Storage, error) {
 	if pgClient != nil {
 		return postgres.NewPgStorage(pgClient), nil
 	}
 
 	memMetricStorage := mem.NewStorage(&mem.BackupOptional{
 		BackupPath:    cfg.FileStoragePath,
-		StoreInterval: cfg.StoreInterval,
+		StoreInterval: storeInterval,
 	})
 
 	// Restore metrics from file storage if the 'restore' flag is set
@@ -155,9 +171,8 @@ func BuildStorage(pgClient *postgres.PgClient, cfg *config.ServerConfig) (store.
 	return memMetricStorage, nil
 }
 
-func RunMigrationPostgres(ctx context.Context, pgClient *postgres.PgClient) error {
-	// Apply migrations to the database
-	err := filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
+func applyMigrations(ctx context.Context, pgClient *postgres.PgClient) error {
+	return filepath.Walk("migrations", func(path string, info fs.FileInfo, err error) error {
 		if !info.IsDir() {
 			logger.Logger().Info("apply migration", zap.String("path", path))
 			bytes, err := os.ReadFile(path)
@@ -173,9 +188,4 @@ func RunMigrationPostgres(ctx context.Context, pgClient *postgres.PgClient) erro
 
 		return nil
 	})
-	if err != nil {
-		return fmt.Errorf("failed to apply migrations to the database: %w", err)
-	}
-
-	return nil
 }

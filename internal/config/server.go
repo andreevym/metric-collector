@@ -54,7 +54,7 @@ func (c *ServerConfig) GetConfigFromFile(configPath string) error {
 	return nil
 }
 
-func (c *ServerConfig) Init() *ServerConfig {
+func (c *ServerConfig) Init() (*ServerConfig, error) {
 	flag.StringVar(&c.Address, "a", ":8080", "адрес и порт для запуска сервера")
 	flag.StringVar(&c.LogLevel, "l", "info", "уровень логирования")
 	flag.IntVar(&c.StoreInterval, "i", 300, "интервал времени в секундах "+
@@ -80,13 +80,13 @@ func (c *ServerConfig) Init() *ServerConfig {
 	if configPath != "" {
 		err := c.GetConfigFromFile(configPath)
 		if err != nil {
-			panic(fmt.Errorf("failed to read config file '%s': %w", configPath, err))
+			return nil, fmt.Errorf("failed to read config file '%s': %w", configPath, err)
 		}
 	}
 
 	if err := env.Parse(c); err != nil {
-		panic(fmt.Errorf("failed to parse env: %w", err))
+		return nil, fmt.Errorf("failed to parse env: %w", err)
 	}
 
-	return c
+	return c, nil
 }

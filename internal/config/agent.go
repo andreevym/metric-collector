@@ -43,7 +43,7 @@ func (c *AgentConfig) GetConfigFromFile(configPath string) error {
 	return nil
 }
 
-func (c *AgentConfig) Init() *AgentConfig {
+func (c *AgentConfig) Init() (*AgentConfig, error) {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "адрес и порт для запуска сервера")
 	flag.StringVar(&c.SecretKey, "k", "", "secret key, if variable is not empty will "+
 		"make hash from request body and add header HashSHA256 for each http request")
@@ -63,13 +63,13 @@ func (c *AgentConfig) Init() *AgentConfig {
 	if configPath != "" {
 		err := c.GetConfigFromFile(configPath)
 		if err != nil {
-			panic(fmt.Errorf("failed to read config file '%s': %w", configPath, err))
+			return nil, fmt.Errorf("failed to read config file '%s': %w", configPath, err)
 		}
 	}
 
 	if err := env.Parse(c); err != nil {
-		panic(fmt.Errorf("failed to parse config: %w", err))
+		return nil, fmt.Errorf("failed to parse config: %w", err)
 	}
 
-	return c
+	return c, nil
 }
