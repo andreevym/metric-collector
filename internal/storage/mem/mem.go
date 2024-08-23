@@ -108,7 +108,21 @@ func (s *Storage) Restore() error {
 }
 
 func (s *Storage) Backup() error {
-	if s.opt == nil || s.opt.BackupPath == "" || s.opt.StoreInterval < 0 {
+	if s.opt == nil || s.opt.BackupPath == "" || s.opt.StoreInterval == 0 {
+		return nil
+	}
+
+	err := Save(s.opt.BackupPath, s.data)
+	if err != nil {
+		logger.Logger().Error("problem to save backup ", zap.Error(err))
+		return fmt.Errorf("save backup: %s", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) BackupPeriodically() error {
+	if s.opt == nil || s.opt.BackupPath == "" || s.opt.StoreInterval <= 0 {
 		return nil
 	}
 

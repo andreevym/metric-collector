@@ -93,7 +93,7 @@ func main() {
 				case <-ctx.Done():
 					return
 				case <-ticker.C:
-					if err := storage.Backup(); err != nil {
+					if err := storage.BackupPeriodically(); err != nil {
 						logger.Logger().Fatal("Backup failed", zap.Error(err))
 					}
 				}
