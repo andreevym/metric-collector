@@ -108,7 +108,7 @@ func (s *Storage) Restore() error {
 }
 
 func (s *Storage) Backup() error {
-	if s.opt == nil || s.opt.BackupPath == "" || s.opt.StoreInterval == 0 {
+	if s.opt == nil || s.opt.BackupPath == "" || s.opt.StoreInterval != 0 {
 		return nil
 	}
 

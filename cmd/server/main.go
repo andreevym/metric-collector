@@ -116,7 +116,7 @@ func main() {
 			}
 			fmt.Println("Server stopped gracefully")
 
-			if err := storage.Backup(); err != nil {
+			if err := storage.BackupPeriodically(); err != nil {
 				logger.Logger().Fatal("Backup failed", zap.Error(err))
 			}
 			return
