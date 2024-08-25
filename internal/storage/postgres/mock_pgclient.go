@@ -35,6 +35,34 @@ func (m *MockStorage) EXPECT() *MockStorageMockRecorder {
 	return m.recorder
 }
 
+// Backup mocks base method.
+func (m *MockStorage) Backup() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Backup")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Backup indicates an expected call of Backup.
+func (mr *MockStorageMockRecorder) Backup() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Backup", reflect.TypeOf((*MockStorage)(nil).Backup))
+}
+
+// BackupPeriodically mocks base method.
+func (m *MockStorage) BackupPeriodically() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "BackupPeriodically")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// BackupPeriodically indicates an expected call of BackupPeriodically.
+func (mr *MockStorageMockRecorder) BackupPeriodically() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BackupPeriodically", reflect.TypeOf((*MockStorage)(nil).BackupPeriodically))
+}
+
 // Create mocks base method.
 func (m_2 *MockStorage) Create(ctx context.Context, m *store.Metric) error {
 	m_2.ctrl.T.Helper()

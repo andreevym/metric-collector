@@ -1,11 +1,17 @@
 package middleware
 
+import "net"
+
 type Middleware struct {
-	SecretKey string
+	SecretKey     string
+	CryptoKey     string
+	TrustedSubnet *net.IPNet
 }
 
-func NewMiddleware(secretKey string) *Middleware {
+func NewMiddleware(secretKey string, cryptoKey string, trustedSubnet *net.IPNet) *Middleware {
 	return &Middleware{
-		SecretKey: secretKey,
+		SecretKey:     secretKey,
+		CryptoKey:     cryptoKey,
+		TrustedSubnet: trustedSubnet,
 	}
 }

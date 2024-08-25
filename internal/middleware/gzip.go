@@ -31,7 +31,7 @@ func (m *Middleware) ResponseGzipMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			_, err = io.WriteString(w, err.Error())
 			if err != nil {
-				logger.Logger().Error("io.WriteString", zap.Error(err))
+				logger.Logger().Error("value can't be written", zap.Error(err))
 				return
 			} //nolint
 			return
@@ -54,7 +54,7 @@ func (m *Middleware) RequestGzipMiddleware(next http.Handler) http.Handler {
 		if err != nil {
 			_, err = io.WriteString(w, err.Error())
 			if err != nil {
-				logger.Logger().Error("io.WriteString", zap.Error(err))
+				logger.Logger().Error("value can't be written", zap.Error(err))
 				return
 			} //nolint
 			return

@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 const (
@@ -14,10 +16,7 @@ const (
 	PathGetRoot     = "/"
 )
 
-func NewRouter(
-	s *ServiceHandlers,
-	middlewares ...func(http.Handler) http.Handler,
-) *chi.Mux {
+func NewRouter(s *ServiceHandlers, middlewares ...func(http.Handler) http.Handler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middlewares...)
@@ -37,5 +36,13 @@ func NewRouter(
 	r.Get(PathGetRoot, func(writer http.ResponseWriter, request *http.Request) {
 		writer.Header().Set("Content-Type", "text/html")
 	})
+
+	// Serve Swagger UI
+	r.Get("/swagger/*", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"), //The url pointing to API definition
+	))
+
+	r.Mount("/debug", chimiddleware.Profiler())
+
 	return r
 }

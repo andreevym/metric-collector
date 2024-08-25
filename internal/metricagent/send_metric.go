@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"time"
 
 	"github.com/andreevym/metric-collector/internal/compressor"
+	"github.com/andreevym/metric-collector/internal/crypto"
 	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/hash"
 	"github.com/andreevym/metric-collector/internal/logger"
@@ -26,6 +28,7 @@ func sendMetric(
 	ctx context.Context,
 	inputCh chan []*store.Metric,
 	secretKey string,
+	cryptoKey string,
 	reportDuration time.Duration,
 	address string,
 ) {
@@ -36,7 +39,7 @@ func sendMetric(
 			return
 		case metrics, ok := <-inputCh:
 			if ok {
-				err := sendRequest(ctx, secretKey, address, metrics)
+				err := sendRequest(ctx, secretKey, cryptoKey, address, metrics)
 				if err != nil {
 					logger.Logger().Error("failed to send request", zap.Error(err))
 					break
@@ -50,6 +53,7 @@ func sendMetric(
 func sendRequest(
 	ctx context.Context,
 	secretKey string,
+	cryptoKey string,
 	address string,
 	metric []*store.Metric,
 ) error {
@@ -66,22 +70,45 @@ func sendRequest(
 	}
 	_ = retry.Do(
 		func() error {
+
+			var b []byte
+			if cryptoKey != "" {
+				encodedBytes, err := crypto.Encode(cryptoKey, string(compressedBytes))
+				if err != nil {
+					logger.Logger().Error("failed to encode request body", zap.Error(err))
+					return fmt.Errorf("failed to encode request body: %w", err)
+				}
+				b = []byte(encodedBytes)
+			} else {
+				b = compressedBytes
+			}
+
 			var request *http.Request
 			request, err = http.NewRequest(
 				http.MethodPost,
 				fmt.Sprintf("http://%s/updates/", address),
-				bytes.NewBuffer(compressedBytes),
+				bytes.NewBuffer(b),
 			)
 			if err != nil {
 				logger.Logger().Error("failed to create new request",
 					zap.String("request body", string(b)), zap.Error(err))
 				return err
 			}
+
+			var ip net.IP
+			ip, err = identifyIP()
+			if err != nil {
+				logger.Logger().Error("failed to identify IP", zap.Error(err))
+				return fmt.Errorf("failed to identify IP: %w", err)
+			}
+			if ip != nil {
+				request.Header.Set("X-Real-IP", ip.String())
+			}
 			request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 			request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
 			request.Header.Set("Content-Encoding", compressor.ContentEncoding)
 			if len(secretKey) != 0 {
-				request.Header.Set("HashSHA256", hash.EncodeHash(compressedBytes, secretKey))
+				request.Header.Set("HashSHA256", hash.EncodeHash(b, secretKey))
 			}
 			var resp *http.Response
 			resp, err = http.DefaultClient.Do(request)
@@ -145,5 +172,5 @@ func sendRequest(
 }
 
 func isRetriableStatus(statusCode int) bool {
-	return statusCode == 500 && statusCode < 503
+	return statusCode == 500
 }

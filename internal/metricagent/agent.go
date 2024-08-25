@@ -2,7 +2,10 @@ package metricagent
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/net/context"
@@ -14,11 +17,13 @@ type Agent struct {
 	ReportDuration time.Duration
 	LiveTime       time.Duration
 	SecretKey      string
+	CryptoKey      string
 	RateLimit      int
 }
 
 func NewAgent(
 	secretKey string,
+	cryptoKey string,
 	address string,
 	pollDuration time.Duration,
 	reportDuration time.Duration,
@@ -31,6 +36,7 @@ func NewAgent(
 		ReportDuration: reportDuration,
 		LiveTime:       liveTime,
 		SecretKey:      secretKey,
+		CryptoKey:      cryptoKey,
 		RateLimit:      rateLimit,
 	}
 }
@@ -46,13 +52,27 @@ func (a Agent) Run() error {
 
 	wg := sync.WaitGroup{}
 	for i := 0; i < a.RateLimit; i++ {
-		wg.Add(1)
-		go func() {
-			// откладываем уменьшение счетчика в WaitGroup, когда завершится горутина
-			defer wg.Done()
-			sendMetric(ctx, metricsCh, a.SecretKey, a.ReportDuration, a.Address)
-		}()
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+			wg.Add(1)
+			go func() {
+				// откладываем уменьшение счетчика в WaitGroup, когда завершится горутина
+				defer wg.Done()
+				sendMetric(ctx, metricsCh, a.SecretKey, a.CryptoKey, a.ReportDuration, a.Address)
+			}()
+		}
 	}
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+
+	go func() {
+		<-quit
+		cancelFunc()
+	}()
+
 	wg.Wait()
 	return nil
 }

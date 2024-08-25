@@ -41,7 +41,7 @@ func TestGzipCompressionUpdate(t *testing.T) {
 	assert.NoError(t, err)
 
 	serviceHandlers := NewServiceHandlers(memStorage, nil)
-	m := middleware.NewMiddleware("")
+	m := middleware.NewMiddleware("", "", nil)
 	router := NewRouter(
 		serviceHandlers,
 		m.RequestGzipMiddleware,
@@ -148,7 +148,7 @@ func TestGzipCompressionValue(t *testing.T) {
 	assert.NoError(t, err)
 
 	serviceHandlers := NewServiceHandlers(memStorage, nil)
-	m := middleware.NewMiddleware("")
+	m := middleware.NewMiddleware("", "", nil)
 	router := NewRouter(
 		serviceHandlers,
 		m.ResponseGzipMiddleware,

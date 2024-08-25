@@ -19,6 +19,8 @@ type Storage interface {
 	Read(ctx context.Context, id string, mType string) (*Metric, error)
 	Update(ctx context.Context, m *Metric) error
 	Delete(ctx context.Context, id string, mType string) error
+	Backup() error
+	BackupPeriodically() error
 }
 
 //go:generate mockgen -destination=../postgres/mock_pgclient.go -source=store.go -package=postgres Client

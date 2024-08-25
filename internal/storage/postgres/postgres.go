@@ -148,6 +148,14 @@ func (s *PgStorage) Delete(ctx context.Context, id string, mType string) error {
 	return err
 }
 
+func (s *PgStorage) Backup() error {
+	return nil
+}
+
+func (s *PgStorage) BackupPeriodically() error {
+	return nil
+}
+
 func isRetriableError(err error) bool {
 	var pgErr *pgconn.PgError
 	// проверяем, что при обращении к PostgreSQL cервер получил ошибку транспорта
