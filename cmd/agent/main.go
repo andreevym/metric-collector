@@ -54,7 +54,7 @@ func main() {
 	reportDuration := time.Duration(cfg.ReportInterval) * time.Second
 	liveTime := time.Minute
 
-	conn, err := grpc.Dial(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}

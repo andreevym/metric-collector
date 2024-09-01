@@ -22,7 +22,7 @@ type Server struct {
 	address string
 }
 
-func NewHttpServer(pgClient *postgres.PgClient, metricStorage store.Storage, secretKey string, cryptoKey string, trustedSubnet string, address string) (*Server, error) {
+func NewHTTPServer(pgClient *postgres.PgClient, metricStorage store.Storage, secretKey string, cryptoKey string, trustedSubnet string, address string) (*Server, error) {
 	var err error
 	var ipTrustedSubnet *net.IPNet
 	if trustedSubnet != "" {

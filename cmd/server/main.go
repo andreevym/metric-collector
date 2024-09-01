@@ -80,7 +80,7 @@ func main() {
 		logger.Logger().Fatal("can't create metric storage", zap.Error(err))
 	}
 
-	httpServer, _ := http.NewHttpServer(pgClient, storage, cfg.SecretKey, cfg.CryptoKey, cfg.TrustedSubnet, cfg.Address)
+	httpServer, _ := http.NewHTTPServer(pgClient, storage, cfg.SecretKey, cfg.CryptoKey, cfg.TrustedSubnet, cfg.Address)
 	go func() {
 		defer cancel()
 		if err := httpServer.Run(); err != nil {
