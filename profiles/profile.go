@@ -2,13 +2,13 @@ package main
 
 import (
 	context2 "context"
-	"github.com/andreevym/metric-collector/internal/transport/http/handlers"
 	"net/http"
 	"os"
 	"runtime"
 	"runtime/pprof"
 
 	"github.com/andreevym/metric-collector/internal/storage/store"
+	"github.com/andreevym/metric-collector/internal/transport/http/handlers"
 	"github.com/go-chi/chi/v5"
 )
 

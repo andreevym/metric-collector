@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/andreevym/metric-collector/internal/transport/grpc/proto"
-	handlers2 "github.com/andreevym/metric-collector/internal/transport/http/handlers"
 	"io"
 	"net"
 	"net/http"
@@ -17,6 +16,7 @@ import (
 	"github.com/andreevym/metric-collector/internal/hash"
 	"github.com/andreevym/metric-collector/internal/logger"
 	"github.com/andreevym/metric-collector/internal/storage/store"
+	"github.com/andreevym/metric-collector/internal/transport/http/handlers"
 	"github.com/andreevym/metric-collector/internal/utils"
 	"github.com/avast/retry-go"
 	"go.uber.org/zap"
@@ -157,7 +157,7 @@ func (a Agent) httpUpdate(metric []*store.Metric) error {
 	if ip != nil {
 		request.Header.Set("X-Real-IP", ip.String())
 	}
-	request.Header.Set("Content-Type", handlers2.UpdateMetricContentType)
+	request.Header.Set("Content-Type", handlers.UpdateMetricContentType)
 	request.Header.Set("Accept-Encoding", compressor.AcceptEncoding)
 	request.Header.Set("Content-Encoding", compressor.ContentEncoding)
 	if len(a.SecretKey) != 0 {
