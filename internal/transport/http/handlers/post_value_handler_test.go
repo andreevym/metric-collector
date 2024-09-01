@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andreevym/metric-collector/internal/handlers"
-	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/store"
+	"github.com/andreevym/metric-collector/internal/transport/http/handlers"
+	"github.com/andreevym/metric-collector/internal/transport/http/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

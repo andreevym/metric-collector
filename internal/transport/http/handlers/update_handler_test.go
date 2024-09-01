@@ -2,7 +2,7 @@ package handlers_test
 
 import (
 	"bytes"
-	context2 "context"
+	"context"
 	"encoding/json"
 	"io"
 	"math/rand"
@@ -11,11 +11,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/hash"
-	"github.com/andreevym/metric-collector/internal/middleware"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/store"
+	"github.com/andreevym/metric-collector/internal/transport/http/handlers"
+	"github.com/andreevym/metric-collector/internal/transport/http/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -266,11 +266,11 @@ func prepareTestData() (*http.Request, error) {
 		Values: []string{"counter", "test", "1"},
 	}
 
-	context := chi.NewRouteContext()
-	context.Routes = router
-	context.URLParams = params
-	context.RouteMethod = "POST"
-	context.RoutePath = "/update/{metricType}/{metricName}/{metricValue}"
+	ctx := chi.NewRouteContext()
+	ctx.Routes = router
+	ctx.URLParams = params
+	ctx.RouteMethod = "POST"
+	ctx.RoutePath = "/update/{metricType}/{metricName}/{metricValue}"
 
 	request, err := http.NewRequest("POST", "http://localhost:8080/update/counter/test/1", nil)
 	if err != nil {
@@ -278,6 +278,6 @@ func prepareTestData() (*http.Request, error) {
 	}
 
 	// Add context to request
-	r := request.WithContext(context2.WithValue(context2.Background(), chi.RouteCtxKey, context))
+	r := request.WithContext(context.WithValue(context.Background(), chi.RouteCtxKey, ctx))
 	return r, nil
 }
