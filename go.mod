@@ -1,6 +1,8 @@
 module github.com/andreevym/metric-collector
 
-go 1.23
+go 1.21
+
+toolchain go1.23.0
 
 require (
 	github.com/avast/retry-go v3.0.0+incompatible
