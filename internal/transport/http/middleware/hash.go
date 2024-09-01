@@ -52,7 +52,7 @@ func (m *Middleware) RequestHashMiddleware(h http.Handler) http.Handler {
 			// Calculate the hash of the request body using the specified secret key
 			serverRequestBodyHash := hash.EncodeHash(bytes, m.SecretKey)
 
-			// Compare the hash provided by the client with the calculated hash on the server side
+			// Compare the hash provided by the client with the calculated hash on the transport side
 			if serverRequestBodyHash != agentRequestBodyHash {
 				// If the hashes do not match, set a Bad Request status code
 				// and log the error

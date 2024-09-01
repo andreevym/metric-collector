@@ -40,13 +40,13 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	foundMetric, err := s.storage.Read(r.Context(), m.ID, m.MType)
-	if err != nil || foundMetric == nil {
+	metric := s.controller.Value(r.Context(), m.ID, m.MType)
+	if metric == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	bytes, err = json.Marshal(foundMetric)
+	bytes, err = json.Marshal(metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

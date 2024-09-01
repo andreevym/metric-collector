@@ -2,6 +2,7 @@ package metricagent
 
 import (
 	"fmt"
+	"github.com/andreevym/metric-collector/internal/transport/grpc/proto"
 	"os"
 	"os/signal"
 	"sync"
@@ -19,6 +20,8 @@ type Agent struct {
 	SecretKey      string
 	CryptoKey      string
 	RateLimit      int
+	grpcClient     proto.MetricCollectorClient
+	isGrpcEnabled  bool
 }
 
 func NewAgent(
@@ -29,6 +32,8 @@ func NewAgent(
 	reportDuration time.Duration,
 	liveTime time.Duration,
 	rateLimit int,
+	grpcClient proto.MetricCollectorClient,
+	isGrpcEnabled bool,
 ) *Agent {
 	return &Agent{
 		Address:        address,
@@ -38,6 +43,8 @@ func NewAgent(
 		SecretKey:      secretKey,
 		CryptoKey:      cryptoKey,
 		RateLimit:      rateLimit,
+		grpcClient:     grpcClient,
+		isGrpcEnabled:  isGrpcEnabled,
 	}
 }
 
@@ -60,7 +67,7 @@ func (a Agent) Run() error {
 			go func() {
 				// откладываем уменьшение счетчика в WaitGroup, когда завершится горутина
 				defer wg.Done()
-				sendMetric(ctx, metricsCh, a.SecretKey, a.CryptoKey, a.ReportDuration, a.Address)
+				a.sendMetric(ctx, metricsCh)
 			}()
 		}
 	}

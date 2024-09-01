@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "internal/transport/grpc/proto";
+
+message Metric {
+  string id = 1;
+  string type = 2;
+  int64 delta = 3;
+  double value = 4;
+}
+
+message PingRequest {
+
+}
+
+message PingResponse {
+
+}
+
+message UpdatesRequest {
+  repeated Metric metrics = 1;
+}
+
+message UpdatesResponse {
+}
+
+message UpdateRequest {
+  string id = 1;
+  string type = 2;
+  int64 delta = 3;
+  double value = 4;
+}
+
+message UpdateResponse {
+  string id = 1;
+  string type = 2;
+  int64 delta = 3;
+  double value = 4;
+}
+
+message ValueRequest {
+  string id = 1;
+  string metric_type = 2;
+}
+
+message ValueResponse {
+  Metric metric = 1;
+}
+
+service MetricCollector {
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc Updates(UpdatesRequest) returns (UpdatesResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc Value(ValueRequest) returns (ValueResponse);
+}

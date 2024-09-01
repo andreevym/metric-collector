@@ -5,6 +5,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"github.com/andreevym/metric-collector/internal/transport/grpc"
+	"github.com/andreevym/metric-collector/internal/transport/http"
 	"io/fs"
 	"log"
 	"os"
@@ -15,7 +17,6 @@ import (
 
 	"github.com/andreevym/metric-collector/internal/config"
 	"github.com/andreevym/metric-collector/internal/logger"
-	"github.com/andreevym/metric-collector/internal/server"
 	"github.com/andreevym/metric-collector/internal/storage/mem"
 	"github.com/andreevym/metric-collector/internal/storage/postgres"
 	"github.com/andreevym/metric-collector/internal/storage/store"
@@ -79,10 +80,20 @@ func main() {
 		logger.Logger().Fatal("can't create metric storage", zap.Error(err))
 	}
 
-	s := server.NewServer(pgClient, storage, cfg.SecretKey, cfg.CryptoKey, cfg.TrustedSubnet)
+	httpServer, _ := http.NewHttpServer(pgClient, storage, cfg.SecretKey, cfg.CryptoKey, cfg.TrustedSubnet, cfg.Address)
 	go func() {
 		defer cancel()
-		s.Run(cfg.Address)
+		if err := httpServer.Run(); err != nil {
+			logger.Logger().Fatal("can't start server", zap.Error(err))
+		}
+	}()
+
+	grpcServer := grpc.NewGrpcServer(pgClient, storage, cfg.SecretKey, cfg.CryptoKey, cfg.TrustedSubnet, cfg.Address)
+	go func() {
+		defer cancel()
+		if err := grpcServer.Run(); err != nil {
+			logger.Logger().Fatal("can't start server", zap.Error(err))
+		}
 	}()
 
 	if storeInterval > 0 {
@@ -106,22 +117,26 @@ func main() {
 	for {
 		select {
 		case <-quit:
-			fmt.Println("Shutting down server...")
-
+			logger.Logger().Info("shutting down server...")
 			ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
 			defer cancel()
 
-			if err := s.Server.Shutdown(ctx); err != nil {
+			if err := httpServer.Shutdown(ctx); err != nil {
 				log.Fatalf("Server shutdown failed: %v", err)
 			}
-			fmt.Println("Server stopped gracefully")
+			logger.Logger().Info("server http stopped gracefully")
+
+			if err := grpcServer.Shutdown(); err != nil {
+				log.Fatalf("Server shutdown failed: %v", err)
+			}
+			logger.Logger().Info("server grpc stopped gracefully")
 
 			if err := storage.BackupPeriodically(); err != nil {
-				logger.Logger().Fatal("Backup failed", zap.Error(err))
+				logger.Logger().Fatal("backup failed", zap.Error(err))
 			}
 			return
 		case <-ctx.Done():
-			logger.Logger().Info("Shutting down server...")
+			logger.Logger().Info("shutting down server context done...")
 			return
 		}
 	}
