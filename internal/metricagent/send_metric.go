@@ -84,13 +84,7 @@ func (a Agent) sendRequest(
 	return nil
 }
 
-func (a Agent) grpcUpdate(
-	ctx context.Context,
-	metric []*store.Metric,
-) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-	defer cancel()
-
+func (a Agent) grpcUpdate(ctx context.Context, metric []*store.Metric) error {
 	updatesRequest := &proto.UpdatesRequest{
 		Metrics: make([]*proto.Metric, 0, len(metric)),
 	}
