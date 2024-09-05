@@ -52,7 +52,7 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	_, err = io.WriteString(w, string(bytes))
+	_, err = w.Write(bytes)
 	if err != nil {
 		logger.Logger().Error("value can't be written", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
