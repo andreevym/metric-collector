@@ -5,6 +5,9 @@ package main
 import (
 	"fmt"
 	"github.com/andreevym/metric-collector/internal/logger"
+	"github.com/andreevym/metric-collector/internal/transport/grpc/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"time"
 
@@ -51,6 +54,13 @@ func main() {
 	reportDuration := time.Duration(cfg.ReportInterval) * time.Second
 	liveTime := time.Minute
 
+	conn, err := grpc.NewClient(cfg.Address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer conn.Close()
+	grpcClient := proto.NewMetricCollectorClient(conn)
+
 	// Create and run the agent.
 	err = metricagent.NewAgent(
 		cfg.SecretKey,
@@ -60,6 +70,8 @@ func main() {
 		reportDuration,
 		liveTime,
 		cfg.RateLimit,
+		grpcClient,
+		cfg.IsGrpcRequest,
 	).Run()
 	if err != nil {
 		log.Fatal("failed to execute agent:", err)

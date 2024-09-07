@@ -40,19 +40,19 @@ func (s ServiceHandlers) PostValueHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	foundMetric, err := s.storage.Read(r.Context(), m.ID, m.MType)
-	if err != nil || foundMetric == nil {
+	metric := s.controller.Value(r.Context(), m.ID, m.MType)
+	if metric == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
-	bytes, err = json.Marshal(foundMetric)
+	bytes, err = json.Marshal(metric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	_, err = io.WriteString(w, string(bytes))
+	_, err = w.Write(bytes)
 	if err != nil {
 		logger.Logger().Error("value can't be written", zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)

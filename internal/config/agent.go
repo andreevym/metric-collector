@@ -12,6 +12,8 @@ import (
 type AgentConfig struct {
 	// Address содержит адрес и порт для отправки метрик на сервер
 	Address string `env:"ADDRESS" json:"address"`
+	// IsGrpcRequest если true отправляем запросы через grpc client, если false через http
+	IsGrpcRequest bool `env:"IS_GRPC_REQUEST" json:"is_grpc_request"`
 	// ReportInterval частоту отправки метрик на сервер
 	ReportInterval int `env:"REPORT_INTERVAL" json:"report_interval"`
 	// PollInterval частоту опроса метрик из пакета runtime
@@ -45,6 +47,7 @@ func (c *AgentConfig) GetConfigFromFile(configPath string) error {
 
 func (c *AgentConfig) Init() (*AgentConfig, error) {
 	flag.StringVar(&c.Address, "a", "localhost:8080", "адрес и порт для запуска сервера")
+	flag.BoolVar(&c.IsGrpcRequest, "g", false, "если true отправляем запросы через grpc client, если false через http")
 	flag.StringVar(&c.SecretKey, "k", "", "secret key, if variable is not empty will "+
 		"make hash from request body and add header HashSHA256 for each http request")
 	flag.IntVar(&c.ReportInterval, "r", 10, "report interval (seconds)")

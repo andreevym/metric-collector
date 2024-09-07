@@ -40,10 +40,15 @@ func (s ServiceHandlers) PostUpdatesHandler(w http.ResponseWriter, r *http.Reque
 	var metrics []*store.Metric
 	err = json.Unmarshal(bytes, &metrics)
 	if err != nil {
-		logger.Logger().Error("err", zap.Error(err))
+		logger.Logger().Error("failed to unmarshal request", zap.String("request_bytes", string(bytes)), zap.Error(err))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	store.SaveAllMetric(r.Context(), s.storage, metrics)
+	err = s.controller.Updates(r.Context(), metrics)
+	if err != nil {
+		logger.Logger().Error("failed to save all metric", zap.Error(err))
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }

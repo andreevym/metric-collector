@@ -42,38 +42,13 @@ func (s ServiceHandlers) PostUpdateHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	if metric.MType != store.MTypeGauge && metric.MType != store.MTypeCounter {
+	respMetric, err := s.controller.Update(r.Context(), metric)
+	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	foundValue, err := s.storage.Read(r.Context(), metric.ID, metric.MType)
-	if err != nil && !errors.Is(err, store.ErrValueNotFound) {
-		logger.Logger().Error("failed update metric",
-			zap.Error(err))
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-
-	if foundValue == nil {
-		err = s.storage.Create(r.Context(), metric)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	} else {
-		if metric.MType == store.MTypeCounter {
-			newDelta := *metric.Delta + *foundValue.Delta
-			metric.Delta = &newDelta
-		}
-		err = s.storage.Update(r.Context(), metric)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-	}
-
-	bytes, err := json.Marshal(&metric)
+	bytes, err := json.Marshal(&respMetric)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

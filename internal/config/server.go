@@ -12,6 +12,8 @@ import (
 type ServerConfig struct {
 	// Address адрес и порт для запуска сервера
 	Address string `env:"ADDRESS" json:"address"`
+	// Address адрес и порт для запуска сервера
+	GrpcAddress string `env:"GRPC_ADDRESS" json:"grpc_address"`
 	// LogLevel уровень логирования
 	LogLevel string `env:"LOG_LEVEL" json:"log_level"`
 	// StoreInterval интервал времени в секундах,
@@ -56,6 +58,7 @@ func (c *ServerConfig) GetConfigFromFile(configPath string) error {
 
 func (c *ServerConfig) Init() (*ServerConfig, error) {
 	flag.StringVar(&c.Address, "a", ":8080", "адрес и порт для запуска сервера")
+	flag.StringVar(&c.GrpcAddress, "g", ":3200", "адрес и порт для запуска grpc сервера")
 	flag.StringVar(&c.LogLevel, "l", "info", "уровень логирования")
 	flag.IntVar(&c.StoreInterval, "i", 300, "интервал времени в секундах "+
 		"по истечении которого текущие показания сервера сохраняются на диск "+

@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/andreevym/metric-collector/internal/handlers"
 	"github.com/andreevym/metric-collector/internal/storage/mocks"
 	"github.com/andreevym/metric-collector/internal/storage/store"
+	"github.com/andreevym/metric-collector/internal/transport/http/handlers"
 	"github.com/go-chi/chi/v5"
 	"github.com/golang/mock/gomock"
 )
